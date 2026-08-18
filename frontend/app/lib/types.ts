@@ -236,6 +236,18 @@ export interface Outlook {
   suggestions: Suggestion[];
 }
 
+export interface Rules {
+  wants_flag_pct: number;
+  wants_lean_pct: number;
+  unexpected_flag_pct: number;
+  leak_min_repeats: number;
+  leak_max_share_pct: number;
+  quiet_days_min: number;
+  weekend_ratio_flag: number;
+  projection_min_days: number;
+  forecast_min_days: number;
+}
+
 export interface Dashboard {
   month: string;
   month_label: string;
@@ -251,6 +263,7 @@ export interface Dashboard {
   currency: string;
   locale: string;
   category_meta: Record<CategoryKey, { label: string; jp: string; hint: string }>;
+  rules: Rules;
   plan: Plan;
   plan_suggestion: PlanSuggestion | null;
   totals: Totals;

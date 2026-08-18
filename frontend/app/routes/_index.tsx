@@ -10,6 +10,7 @@ import { useState, type ReactNode } from "react";
 
 import { CategoryPanel } from "~/components/CategoryPanel";
 import { DailyChart, DailyTable } from "~/components/DailyChart";
+import { GuidePanel } from "~/components/GuidePanel";
 import { HistoryStrip } from "~/components/HistoryStrip";
 import { Icon } from "~/components/Icon";
 import { InsightsPanel } from "~/components/InsightsPanel";
@@ -101,6 +102,7 @@ const SECTIONS = [
   { key: "outlook", label: "Outlook", icon: "target", hint: "Spending limits, predictions and what to change next" },
   { key: "ledger", label: "Ledger", icon: "table", hint: "Set the month up and log what you spend" },
   { key: "review", label: "Review", icon: "star", hint: "Close the month on the four questions" },
+  { key: "guide", label: "Guide", icon: "help", hint: "How kakeibo works and how to read this app" },
 ] as const;
 
 type SectionKey = (typeof SECTIONS)[number]["key"];
@@ -150,6 +152,7 @@ export default function Index() {
     outlook: data.outlook.suggestions.length,
     ledger: data.totals.entries,
     review: undefined,
+    guide: undefined,
   };
   const sections: NavSection[] = SECTIONS.map((s) => ({ ...s, count: counts[s.key] }));
 
@@ -296,6 +299,10 @@ export default function Index() {
                 fmt={fmt}
               />
             </div>
+          ) : null}
+
+          {view === "guide" ? (
+            <GuidePanel rules={data.rules} currency={data.currency} onNavigate={select} />
           ) : null}
 
           {view === "review" ? (

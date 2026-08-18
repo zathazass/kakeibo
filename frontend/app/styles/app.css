@@ -688,6 +688,119 @@ table.data .th-key {
   vertical-align: baseline;
 }
 
+/* ----------------------------------------------------------------- guide */
+
+.gloop {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 1080px) { .gloop { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .gloop { grid-template-columns: minmax(0, 1fr); } }
+
+.gstage {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  text-align: left;
+  padding: 13px 14px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-page);
+  cursor: pointer;
+  transition: border-color 130ms ease, background 130ms ease;
+}
+.gstage:hover { border-color: var(--border-strong); background: var(--surface-sunken); }
+.gstage:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+.gstage .gs-top { display: flex; align-items: center; gap: 7px; }
+.gstage .gs-ic { display: inline-flex; color: var(--series-1); }
+.gstage .gs-stage {
+  font-size: 10.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.gstage .gs-name { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.gstage .gs-what { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+.gstage .gs-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--series-1);
+  text-transform: capitalize;
+}
+
+.buckets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .buckets { grid-template-columns: minmax(0, 1fr); } }
+.bucket {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-page);
+}
+.bucket .b-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--cat) 15%, transparent);
+  color: var(--cat);
+  flex: none;
+}
+.bucket h3 { font-size: 14px; margin: 0 0 3px; }
+.bucket .b-jp { font-size: 11.5px; color: var(--text-muted); font-weight: 400; margin-left: 5px; }
+.bucket p { margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+.bucket .b-ask { margin-top: 6px; color: var(--text-primary); font-style: italic; font-size: 12.5px; }
+
+.gsections { display: grid; gap: 3px; }
+.gsection {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.gsection:hover { background: var(--surface-sunken); border-color: var(--border); color: var(--text-primary); }
+.gsection:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
+.gsection .gsec-ic { display: inline-flex; color: var(--series-1); padding-top: 2px; }
+.gsection .gsec-body { display: grid; gap: 2px; min-width: 0; }
+.gsection .gsec-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.gsection .gsec-what { font-size: 12px; line-height: 1.5; }
+
+.grules { margin: 0; display: grid; }
+.grules > div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+}
+.grules > div:first-child { border-top: 0; padding-top: 0; }
+.grules dt {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-top: 1px;
+}
+.grules dd { margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; }
+.grules dd strong { color: var(--text-primary); }
 /* --------------------------------------------------------------- outlook */
 
 .limits {
@@ -1046,6 +1159,14 @@ table.data .th-key {
 .scrolly { max-height: 460px; overflow-y: auto; padding-right: 4px; }
 
 /* ------------------------------------------------------------ utilities */
+
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--surface-sunken);
+  padding: 0.08em 0.32em;
+  border-radius: 4px;
+}
 
 .muted { color: var(--text-muted); }
 .secondary { color: var(--text-secondary); }

@@ -29,6 +29,20 @@ WEEKDAY_LONG = ("Monday", "Tuesday", "Wednesday", "Thursday",
 # hard-fail a month.
 WANTS_SHARE_FLAG = 30.0
 UNEXPECTED_SHARE_FLAG = 15.0
+WANTS_LEAN_FLAG = 20.0
+
+# A leak is small *and* frequent: repeated at least this often, and averaging no
+# more than this share of the month per occurrence.
+LEAK_MIN_REPEATS = 3
+LEAK_MAX_SHARE = 0.02
+# A trimmable habit is judged the same way, against a month's typical spend.
+HABIT_MAX_SHARE = 0.05
+
+QUIET_DAYS_MIN = 5
+WEEKEND_RATIO_FLAG = 1.3
+# Days of entries needed before a month-end projection is worth showing / trusting.
+PROJECTION_MIN_DAYS = 3
+FORECAST_MIN_DAYS = 7
 
 
 # --------------------------------------------------------------- month maths
@@ -130,7 +144,7 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
     weekly = _weekly(daily, first, last, totals["daily_allowance"])
     weekday_profile = _weekday_profile(daily)
     comparison = _comparison(conn, plan, totals, prev_month, days_elapsed, is_current_month)
-    leaks = repo.repeat_notes(conn, month)
+    leaks = repo.repeat_notes(conn, month, min_count=LEAK_MIN_REPEATS)
     top_expenses = sorted(expenses, key=lambda e: e["amount"], reverse=True)[:5]
     history = _history(conn)
 
@@ -166,6 +180,17 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
         "currency": CURRENCY,
         "locale": LOCALE,
         "category_meta": CATEGORY_META,
+        "rules": {
+            "wants_flag_pct": WANTS_SHARE_FLAG,
+            "wants_lean_pct": WANTS_LEAN_FLAG,
+            "unexpected_flag_pct": UNEXPECTED_SHARE_FLAG,
+            "leak_min_repeats": LEAK_MIN_REPEATS,
+            "leak_max_share_pct": round(LEAK_MAX_SHARE * 100, 1),
+            "quiet_days_min": QUIET_DAYS_MIN,
+            "weekend_ratio_flag": WEEKEND_RATIO_FLAG,
+            "projection_min_days": PROJECTION_MIN_DAYS,
+            "forecast_min_days": FORECAST_MIN_DAYS,
+        },
         "plan": plan,
         "plan_suggestion": plan_suggestion,
         "totals": totals,
@@ -585,7 +610,7 @@ def _insights(
                 f"{totals['month_elapsed_pct']:.0f}% of the month gone.",
             )
 
-        if is_current_month and days_elapsed >= 3:
+        if is_current_month and days_elapsed >= PROJECTION_MIN_DAYS:
             over = totals["projected_over"]
             if over > 0:
                 add(
@@ -697,7 +722,7 @@ def _insights(
             f"{fmt(wants['amount'])} across {plural(wants['entries'], 'entry', 'entries')}. Wants are the first "
             f"place kakeibo trims — nothing here is required to get through the month.",
         )
-    elif spent > 0 and wants["share"] <= 20:
+    elif spent > 0 and wants["share"] <= WANTS_LEAN_FLAG:
         add(
             "good", "reduced", "check",
             f"Wants held to {wants['share']:.0f}% of spending",
@@ -767,7 +792,7 @@ def _insights(
 
     elapsed_days = [d for d in daily if not d["is_future"]]
     quiet = [d for d in elapsed_days if d["total"] == 0]
-    if len(quiet) >= 5:
+    if len(quiet) >= QUIET_DAYS_MIN:
         add(
             "good", "reduced", "check",
             f"{len(quiet)} no-spend days",
@@ -779,13 +804,13 @@ def _insights(
     if weekend and weekday:
         we_avg = div(sum(b["total"] for b in weekend), sum(b["days"] for b in weekend))
         wd_avg = div(sum(b["total"] for b in weekday), sum(b["days"] for b in weekday))
-        if wd_avg > 0 and we_avg > wd_avg * 1.3:
+        if wd_avg > 0 and we_avg > wd_avg * WEEKEND_RATIO_FLAG:
             add(
                 "warning", "pattern", "up",
                 f"Weekends cost {_ratio(we_avg, wd_avg)}× a weekday",
                 f"{fmt(we_avg)} per weekend day against {fmt(wd_avg)} on weekdays.",
             )
-        elif we_avg > 0 and wd_avg > we_avg * 1.3:
+        elif we_avg > 0 and wd_avg > we_avg * WEEKEND_RATIO_FLAG:
             add(
                 "info", "pattern", "info",
                 "Weekdays cost more than weekends",
@@ -811,7 +836,7 @@ def _insights(
         entries = int(leak["entries"])
         total = money(leak["total"])
         avg = total / entries if entries else 0.0
-        (small if spent > 0 and avg <= spent * 0.02 else recurring).append((leak, entries, total, avg))
+        (small if spent > 0 and avg <= spent * LEAK_MAX_SHARE else recurring).append((leak, entries, total, avg))
 
     for leak, entries, total, avg in small[:2]:
         add(
@@ -1011,7 +1036,7 @@ def _outlook(
 
     # --- where the month lands, and what next month should be ---------------
     basis = days_elapsed if is_current_month else days_in_month
-    reliable = basis >= 7
+    reliable = basis >= FORECAST_MIN_DAYS
 
     # Blend the recent finished months with where this one is heading. Using
     # history alone would suggest a savings goal this month already disproves.
@@ -1165,7 +1190,7 @@ def _suggestions(
         per_month = money(float(habit["total"]) / months)
         per_time = float(habit["total"]) / entries
         # Small and frequent is a habit; large and repeated is just a bill.
-        if per_month <= 0 or per_time > monthly_yardstick * 0.05:
+        if per_month <= 0 or per_time > monthly_yardstick * HABIT_MAX_SHARE:
             continue
         add(
             "info", "leak",
