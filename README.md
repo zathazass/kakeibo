@@ -38,37 +38,47 @@ from 1904. Its defining moves, all of which this app implements literally:
 > ```
 > The Python side has no such constraint and runs as-is.
 
-## Run it with Docker (one command)
+## Running it
 
-The image builds the interface and hands it to FastAPI, so a single container
-serves both on one port. Nothing else is needed — no Node, no virtualenv.
+One command, every time — the first install and every update afterwards:
 
 ```bash
-mkdir -p data
-docker compose up -d --build
+./run.sh
 ```
 
 Open <http://127.0.0.1:2455>.
 
-Your ledger lives in `./data/kakeibo.db` on the host, so backing it up is a file
-copy and the container stays disposable. Already have entries from running it
-locally? Move them across before the first start:
+That is the whole thing. `run.sh` does the careful bits for you, in order:
 
-```bash
-mkdir -p data && cp backend/kakeibo.db data/
-```
+1. checks Docker is installed and running, and explains what to do if not
+2. counts the entries in your ledger, and carries across an older one on first run
+3. stops the app, so nothing is mid-write
+4. **backs your ledger up**
+5. fetches the latest version of the code
+6. rebuilds and restarts
+7. waits until the app actually answers
+8. **counts your entries again and compares** — if even one is missing it puts
+   the backup back, restarts, and tells you loudly
+9. deletes the temporary backup once your data is verified, keeps the five most
+   recent automatic snapshots, and clears leftover build files
 
 | | |
 |---|---|
-| Logs | `docker compose logs -f` |
-| Stop | `docker compose down` |
-| Rebuild after a code change | `docker compose up -d --build` |
-| Shell inside | `docker compose exec kakeibo sh` |
+| `./run.sh` | update and run |
+| `./run.sh --no-pull` | run without fetching a new version |
+| `./run.sh --stop` | stop the app |
+| `docker compose logs -f` | see what it is doing |
 
 The container runs unprivileged as uid 1000 so the bind-mounted `data/` stays
 writable without any chowning. If `id -u` reports something other than 1000, put
-`UID=` and `GID=` in a `.env` file next to `docker-compose.yml`. Currency and
-locale are set in `docker-compose.yml` under `environment`.
+`UID=` and `GID=` in a `.env` file next to `docker-compose.yml`. Currency,
+locale and timezone are set in `docker-compose.yml` under `environment`.
+
+### If you would rather drive it yourself
+
+```bash
+mkdir -p data && docker compose up -d --build
+```
 
 ## Setup for development
 

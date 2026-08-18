@@ -222,7 +222,7 @@ export function GuidePanel({
           <span className="cardic"><Icon name="wallet" size={15} /></span>
           <h2>Housekeeping</h2>
         </div>
-        <div className="grid cols-3">
+        <div className="grid cols-4">
           <div>
             <h3 style={{ fontSize: 13.5, marginBottom: 4 }}>Write notes consistently</h3>
             <p className="secondary" style={{ fontSize: 12.5, margin: 0 }}>
@@ -238,6 +238,14 @@ export function GuidePanel({
               logs in. It sits outside the container, so rebuilding and redeploying never touches it,
               schema changes arrive as migrations rather than a fresh start, and a snapshot is taken
               on every startup in case anything does go wrong.
+            </p>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 13.5, marginBottom: 4 }}>Updating the app</h3>
+            <p className="secondary" style={{ fontSize: 12.5, margin: 0 }}>
+              Run <code>./run.sh</code> in the project folder. It backs your ledger up, fetches the
+              latest version, rebuilds, checks every entry survived, and tidies up after itself. If
+              anything is missing it puts your data straight back.
             </p>
           </div>
           <div>
