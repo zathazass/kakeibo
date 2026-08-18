@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from . import migrations
 from .config import DB_PATH
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
@@ -25,12 +26,17 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
-def init_db() -> None:
-    """Create tables and indexes. Safe to run on every boot."""
+def init_db() -> list[int]:
+    """Create tables if missing, then apply any pending migrations.
+
+    Both halves are idempotent, so this runs on every boot and never touches
+    data that is already there.
+    """
     conn = connect()
     try:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         conn.commit()
+        return migrations.migrate(conn)
     finally:
         conn.close()
 

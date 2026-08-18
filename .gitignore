@@ -13,6 +13,11 @@ frontend/.cache/
 __pycache__/
 *.py[cod]
 
+# Automatic snapshots — regenerated on every start, and there can be 30 of
+# them. The ledger itself (backend/kakeibo.db, data/kakeibo.db) stays tracked.
+data/backups/
+backups/
+
 # SQLite runtime scratch. The ledger itself (backend/kakeibo.db) IS tracked so
 # your data is version-controlled; these two are transient files SQLite rebuilds
 # on its own. Stop the API before committing, so the WAL is checkpointed into

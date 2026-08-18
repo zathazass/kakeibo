@@ -232,10 +232,12 @@ export function GuidePanel({
             </p>
           </div>
           <div>
-            <h3 style={{ fontSize: 13.5, marginBottom: 4 }}>Your data</h3>
+            <h3 style={{ fontSize: 13.5, marginBottom: 4 }}>Your data is safe to develop around</h3>
             <p className="secondary" style={{ fontSize: 12.5, margin: 0 }}>
               Everything lives in one SQLite file on your own machine — nothing leaves it and nothing
-              logs in. Back it up by copying that file with the server stopped.
+              logs in. It sits outside the container, so rebuilding and redeploying never touches it,
+              schema changes arrive as migrations rather than a fresh start, and a snapshot is taken
+              on every startup in case anything does go wrong.
             </p>
           </div>
           <div>

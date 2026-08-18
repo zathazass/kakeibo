@@ -4,6 +4,7 @@ FastAPI serves the JSON API and, once the Remix SPA is built, the app itself.
 """
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,15 +12,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import backup
 from .config import CORS_ORIGINS, CURRENCY, DB_PATH, FRONTEND_DIST, LOCALE
 from .db import init_db
 from .models import CATEGORIES, CATEGORY_META
 from .routers import dashboard, expenses, months
 
 
+log = logging.getLogger("kakeibo")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    # Snapshot before touching anything, so every restart and redeploy leaves a
+    # restore point. Skipped when nothing has changed since the last one.
+    snapshot = backup.take("startup")
+    if snapshot:
+        log.info("ledger snapshot: %s", snapshot)
+
+    applied = init_db()
+    if applied:
+        log.info("applied schema migrations: %s", applied)
+
     yield
 
 
@@ -53,7 +67,23 @@ def health() -> dict[str, object]:
         "categories": list(CATEGORIES),
         "category_meta": CATEGORY_META,
         "frontend_built": FRONTEND_DIST.is_dir(),
+        "schema_version": _schema_version(),
+        "snapshots": len(backup.existing()),
+        "latest_snapshot": (
+            backup.existing()[-1].name if backup.existing() else None
+        ),
     }
+
+
+def _schema_version() -> int:
+    from .db import connect
+    from .migrations import current_version
+
+    conn = connect()
+    try:
+        return current_version(conn)
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------- the SPA

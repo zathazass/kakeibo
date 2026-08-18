@@ -111,6 +111,46 @@ cd ../backend && uvicorn app.main:app --port 2455
 
 Then open <http://127.0.0.1:2455>.
 
+## Your data survives development
+
+The ledger lives on the host in `./data/kakeibo.db`, never inside the image, so
+the normal develop-and-redeploy loop cannot touch it:
+
+```bash
+# edit code, then:
+docker compose up -d --build     # entries, plans and reflections all stay put
+```
+
+Three things make that safe:
+
+| | |
+|---|---|
+| **Bind mount, not a volume** | `./data` is a host folder. `docker compose down` never removes it — not even with `-v`, which only drops *named* volumes. |
+| **Migrations, not re-creation** | Any change to the shape of the data goes in `app/migrations.py` as a numbered step, applied once and recorded in SQLite's `user_version`. Upgrading never asks you to delete a ledger. |
+| **A snapshot every start** | Before anything else runs, the app snapshots the ledger to `data/backups/` using SQLite's online backup API. Every redeploy leaves a restore point; the last 30 are kept. |
+
+Snapshots are skipped when nothing has changed since the last one, so `--reload`
+during development does not fill the folder.
+
+```bash
+docker compose exec kakeibo python -m app.backup --list   # what is on hand
+docker compose exec kakeibo python -m app.backup          # take one now
+```
+
+To restore, stop the app and copy a snapshot over the ledger:
+
+```bash
+docker compose down
+cp data/backups/kakeibo-20260818-124825-startup.db data/kakeibo.db
+docker compose up -d
+```
+
+**Development uses a different database.** `uvicorn` run by hand defaults to
+`backend/kakeibo.db`, while the container uses `data/kakeibo.db` — so
+experimenting locally cannot corrupt the real ledger. To develop against a copy
+of real data, `cp data/kakeibo.db backend/kakeibo.db`. Pointing `KAKEIBO_DB` at
+the live file works but removes that safety net.
+
 ## Configuration
 
 Every value is optional; copy `backend/.env.example` if you want to change any.
@@ -122,6 +162,7 @@ Every value is optional; copy `backend/.env.example` if you want to change any.
 | `KAKEIBO_LOCALE` | `en-IN` | Number grouping (lakh/crore for `en-IN`) |
 | `KAKEIBO_CORS_ORIGINS` | localhost:8004 | Dev origins allowed to call the API |
 | `KAKEIBO_FRONTEND_DIST` | `frontend/build/client` | Built SPA to serve |
+| `TZ` | `Asia/Kolkata` in compose | Container timezone — decides what "today" means |
 
 ## What the screen shows
 

@@ -17,11 +17,17 @@ services:
     ports:
       - "2455:2455"
     volumes:
-      # Your ledger lives here, on the host — back it up by copying this folder.
+      # Your ledger lives here, on the host. Bind mounts are never removed by
+      # `docker compose down` (with or without -v), and rebuilding the image
+      # does not touch them, so your entries survive every redeploy.
       # Swap for a named volume (kakeibo-data:/data) if you would rather Docker
       # kept it out of the way.
       - ./data:/data
     environment:
       KAKEIBO_CURRENCY: "₹"
       KAKEIBO_LOCALE: "en-IN"
+      # Without this the container runs on UTC, and "today" would be yesterday
+      # for the first 5.5 hours of every IST day — entries would land on the
+      # wrong date. Set this to wherever you actually are.
+      TZ: "${TZ:-Asia/Kolkata}"
     restart: unless-stopped
