@@ -189,3 +189,63 @@ def repeat_notes(conn: sqlite3.Connection, month: str, min_count: int = 3) -> li
         (month, min_count),
     )
     return _rows(cur)
+
+
+def lifetime_totals(conn: sqlite3.Connection) -> dict[str, Any]:
+    """Everything ever logged, for the collective view."""
+    row = conn.execute(
+        """
+        SELECT
+            ROUND(COALESCE(SUM(amount), 0), 2)          AS spent,
+            COUNT(*)                                    AS entries,
+            COUNT(DISTINCT substr(spent_on, 1, 7))      AS months,
+            COUNT(DISTINCT spent_on)                    AS active_days,
+            MIN(spent_on)                               AS first_day,
+            MAX(spent_on)                               AS last_day
+        FROM expense
+        """
+    ).fetchone()
+    return dict(row)
+
+
+def lifetime_category_totals(
+    conn: sqlite3.Connection, exclude_month: str | None = None
+) -> dict[str, dict[str, float]]:
+    """Per-category totals across every month.
+
+    ``exclude_month`` drops the month in progress, so a half-finished month
+    cannot drag down the averages it is then compared against.
+    """
+    sql = "SELECT category, ROUND(SUM(amount), 2) AS total, COUNT(*) AS entries FROM expense"
+    params: list[Any] = []
+    if exclude_month:
+        sql += " WHERE substr(spent_on, 1, 7) <> ?"
+        params.append(exclude_month)
+    sql += " GROUP BY category"
+    cur = conn.execute(sql, params)
+    return {
+        row["category"]: {"total": float(row["total"] or 0), "entries": int(row["entries"])}
+        for row in cur.fetchall()
+    }
+
+
+def recurring_habits(conn: sqlite3.Connection, min_months: int = 2) -> list[dict[str, Any]]:
+    """Notes that keep coming back month after month — the trimmable habits."""
+    cur = conn.execute(
+        """
+        SELECT
+            LOWER(TRIM(note))                       AS label,
+            category,
+            COUNT(*)                                AS entries,
+            COUNT(DISTINCT substr(spent_on, 1, 7))  AS months,
+            ROUND(SUM(amount), 2)                   AS total
+        FROM expense
+        WHERE TRIM(note) <> ''
+        GROUP BY LOWER(TRIM(note)), category
+        HAVING COUNT(DISTINCT substr(spent_on, 1, 7)) >= ? AND COUNT(*) >= 4
+        ORDER BY total DESC
+        LIMIT 5
+        """,
+        (min_months,),
+    )
+    return _rows(cur)

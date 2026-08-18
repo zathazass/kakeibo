@@ -15,6 +15,8 @@ interface Props {
  * numeric table underneath (which is also the relief for the two light-mode
  * hues that sit under 3:1 on the surface).
  */
+import { Icon } from "./Icon";
+
 export function WeeklyPanel({ weekly, labels, hasPlan, fmt }: Props) {
   const scale = Math.max(
     ...weekly.map((w) => w.total),
@@ -26,6 +28,7 @@ export function WeeklyPanel({ weekly, labels, hasPlan, fmt }: Props) {
   return (
     <div className="card">
       <div className="card-head">
+        <span className="cardic"><Icon name="calendar" size={15} /></span>
         <h2>Week by week</h2>
         <span className="sub">Calendar weeks, Monday start, clipped to the month</span>
         <span className="spacer" />

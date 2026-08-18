@@ -2,13 +2,15 @@ import type { ReactNode } from "react";
 
 import type { Formatters } from "~/lib/format";
 import { clamp01 } from "~/lib/format";
-import type { Comparison, Totals } from "~/lib/types";
+import type { Comparison, DailyRow, Totals } from "~/lib/types";
 
-import { Icon } from "./Icon";
+import { Icon, type IconName } from "./Icon";
+import { Sparkline } from "./Sparkline";
 
 interface Props {
   totals: Totals;
   comparison: Comparison;
+  daily: DailyRow[];
   daysLeft: number;
   daysElapsed: number;
   daysInMonth: number;
@@ -20,6 +22,7 @@ interface Props {
 export function Overview({
   totals,
   comparison,
+  daily,
   daysLeft,
   daysElapsed,
   daysInMonth,
@@ -32,6 +35,9 @@ export function Overview({
   const aheadOfPace = totals.budget_used_pct - totals.month_elapsed_pct;
   const fillTone =
     used > 1 ? "critical" : aheadOfPace > 5 ? "warning" : "";
+
+  // Cumulative spend through today — shape only; the tile carries the number.
+  const spentSoFar = daily.filter((d) => !d.is_future).map((d) => d.cumulative);
 
   const deltaClass =
     comparison.direction === "up" ? "up" : comparison.direction === "down" ? "down" : "flat";
@@ -121,11 +127,14 @@ export function Overview({
 
       <div className="tilerow">
         <Tile
+          icon="wallet"
           label="Spending money"
           value={fmt.money(totals.available_to_spend)}
           foot={`${fmt.money(totals.income)} income − ${fmt.money(totals.fixed_costs)} fixed − ${fmt.money(totals.savings_goal)} savings`}
         />
         <Tile
+          icon="coins"
+          spark={spentSoFar}
           label="Spent so far"
           value={fmt.money(totals.spent)}
           foot={`${totals.entries} ${totals.entries === 1 ? "entry" : "entries"} · ${fmt.money(totals.avg_daily_spend)} a day`}
@@ -139,6 +148,7 @@ export function Overview({
           }
         />
         <Tile
+          icon="target"
           label="Saved so far"
           value={fmt.money(totals.actual_savings)}
           foot={
@@ -148,6 +158,7 @@ export function Overview({
           }
         />
         <Tile
+          icon="trend"
           label={isCurrentMonth ? "Projected month-end" : "Month total"}
           value={fmt.money(isCurrentMonth ? totals.projected_spend : totals.spent)}
           foot={
@@ -159,6 +170,7 @@ export function Overview({
           }
         />
         <Tile
+          icon="clock"
           label="Daily allowance"
           value={fmt.money(totals.daily_allowance)}
           foot={`${fmt.money(totals.expected_by_now)} would be even by day ${daysElapsed}`}
@@ -173,18 +185,28 @@ function Tile({
   value,
   foot,
   delta,
+  icon,
+  spark,
 }: {
   label: string;
   value: string;
   foot: string;
   delta?: ReactNode;
+  icon: IconName;
+  spark?: number[];
 }) {
   return (
     <div className="tile">
-      <div className="label">{label}</div>
+      <div className="label">
+        <span className="tic">
+          <Icon name={icon} size={13} />
+        </span>
+        {label}
+      </div>
       <div className="value">{value}</div>
       {delta ? <div>{delta}</div> : null}
       <div className="foot">{foot}</div>
+      {spark ? <Sparkline values={spark} /> : null}
     </div>
   );
 }

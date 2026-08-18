@@ -5,6 +5,8 @@ import type { WeekdayRow } from "~/lib/types";
  * Magnitude across an ordered scale, so it is one hue — never a colour per day,
  * which would double-encode bar length as hue.
  */
+import { Icon } from "./Icon";
+
 export function WeekdayPanel({ profile, fmt }: { profile: WeekdayRow[]; fmt: Formatters }) {
   const peak = Math.max(...profile.map((row) => row.avg), 1);
   const live = profile.filter((row) => row.days > 0);
@@ -15,6 +17,7 @@ export function WeekdayPanel({ profile, fmt }: { profile: WeekdayRow[]; fmt: For
   return (
     <div className="card">
       <div className="card-head">
+        <span className="cardic"><Icon name="clock" size={15} /></span>
         <h2>Day of the week</h2>
         <span className="sub">Average spend per day, across this month</span>
       </div>

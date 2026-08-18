@@ -132,6 +132,7 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
     comparison = _comparison(conn, plan, totals, prev_month, days_elapsed, is_current_month)
     leaks = repo.repeat_notes(conn, month)
     top_expenses = sorted(expenses, key=lambda e: e["amount"], reverse=True)[:5]
+    history = _history(conn)
 
     insights = _insights(
         totals=totals,
@@ -173,7 +174,7 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
         "weekly": weekly,
         "weekday_profile": weekday_profile,
         "comparison": comparison,
-        "history": _history(conn),
+        "history": history,
         "leaks": [
             {
                 "label": row["label"],
@@ -186,6 +187,18 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
         "top_expenses": top_expenses,
         "expenses": expenses,
         "insights": insights,
+        "outlook": _outlook(
+            conn,
+            month=month,
+            totals=totals,
+            categories=categories,
+            history=history,
+            leaks=leaks,
+            days_left=days_left,
+            days_elapsed=days_elapsed,
+            days_in_month=days_in_month,
+            is_current_month=is_current_month,
+        ),
         "reflection_questions": _reflection_questions(totals, categories, insights),
     }
 
@@ -888,3 +901,317 @@ def _reflection_questions(
             "detail": improve,
         },
     ]
+
+
+# ------------------------------------------------------------------ outlook
+
+
+def _round_down(value: float, step: int = 100) -> float:
+    """Round a suggested figure down to something a person would actually set."""
+    if value <= 0:
+        return 0.0
+    return float(int(value // step) * step)
+
+
+def _outlook(
+    conn: sqlite3.Connection,
+    *,
+    month: str,
+    totals: dict[str, Any],
+    categories: list[dict[str, Any]],
+    history: list[dict[str, Any]],
+    leaks: list[dict[str, Any]],
+    days_left: int,
+    days_elapsed: int,
+    days_in_month: int,
+    is_current_month: bool,
+) -> dict[str, Any]:
+    """Everything forward-looking: what the month lands at, what is left to
+    spend per day under several ambitions, and what next month should be set to.
+    """
+    life = repo.lifetime_totals(conn)
+    in_progress = month if is_current_month else None
+    life_cats = repo.lifetime_category_totals(conn, exclude_month=in_progress)
+    habits = repo.recurring_habits(conn)
+
+    months_tracked = int(life["months"] or 0)
+    # The divisor for "usual" excludes the month in progress, or the comparison
+    # would be circular: this month would be part of its own average.
+    settled_months = max(1, months_tracked - (1 if is_current_month else 0))
+    lifetime_spent = money(life["spent"])
+
+    # Averages come from *finished* months only — an in-progress one would drag
+    # every average down and make the projections lie.
+    past = [row for row in history if row["month"] < month]
+    recent = past[-3:]
+    avg_spend = div(sum(row["spent"] for row in past), len(past))
+    recent_avg = div(sum(row["spent"] for row in recent), len(recent))
+    avg_saved = div(sum(row["saved"] for row in past if row["income"] > 0),
+                    sum(1 for row in past if row["income"] > 0))
+
+    spent_past = [row for row in past if row["spent"] > 0]
+    best = min(spent_past, key=lambda row: row["spent"]) if len(spent_past) >= 2 else None
+    worst = max(spent_past, key=lambda row: row["spent"]) if len(spent_past) >= 2 else None
+
+    income, fixed = totals["income"], totals["fixed_costs"]
+    spent, available = totals["spent"], totals["available_to_spend"]
+    ceiling = money(income - fixed)
+
+    # --- what you may spend per day for the rest of the month ---------------
+    limits: list[dict[str, Any]] = []
+
+    def add_limit(key: str, label: str, budget: float, detail: str, tone: str) -> None:
+        if budget <= 0:
+            return
+        left = money(budget - spent)
+        limits.append(
+            {
+                "key": key,
+                "label": label,
+                "budget": money(budget),
+                "left": left,
+                "per_day": div(left, days_left) if days_left > 0 and left > 0 else 0.0,
+                "per_week": money(div(left, days_left) * 7) if days_left > 0 and left > 0 else 0.0,
+                "used_pct": pct(spent, budget),
+                "blown": left <= 0,
+                "tone": tone,
+                "detail": detail,
+            }
+        )
+
+    def add_unique_limit(key, label, budget, detail, tone) -> None:
+        if any(abs(existing["budget"] - money(budget)) < 1 for existing in limits):
+            return
+        add_limit(key, label, budget, detail, tone)
+
+    if is_current_month and days_left > 0:
+        if available > 0:
+            add_limit(
+                "goal", "Keep the savings goal intact", available,
+                f"Spending money for {month_label(month)}, after {fmt(totals['savings_goal'])} "
+                f"was set aside.", "good",
+            )
+        if best:
+            add_unique_limit(
+                "best", f"Match your best month ({best['label']})", best["spent"],
+                f"Your leanest finished month came in at {fmt(best['spent'])}.", "info",
+            )
+        if avg_spend > 0:
+            add_unique_limit(
+                "average", "Match your usual month", avg_spend,
+                f"Your average across {plural(len(past), 'finished month')} is "
+                f"{fmt(avg_spend)}.", "info",
+            )
+        if ceiling > 0:
+            add_unique_limit(
+                "ceiling", "Save nothing at all", ceiling,
+                "The hard stop — everything past this is borrowed from somewhere else.",
+                "critical",
+            )
+
+    # --- where the month lands, and what next month should be ---------------
+    basis = days_elapsed if is_current_month else days_in_month
+    reliable = basis >= 7
+
+    # Blend the recent finished months with where this one is heading. Using
+    # history alone would suggest a savings goal this month already disproves.
+    basis_values = [row["spent"] for row in recent if row["spent"] > 0]
+    if is_current_month and reliable and totals["projected_spend"] > 0:
+        basis_values.append(totals["projected_spend"])
+    expected_next = div(sum(basis_values), len(basis_values)) if basis_values else totals["spent"]
+    suggested_goal = _round_down(max(0.0, income - fixed - expected_next), 500)
+
+    projection = {
+        "spend": totals["projected_spend"],
+        "savings": totals["projected_savings"],
+        "over": totals["projected_over"],
+        "basis_days": basis,
+        # Under a week of data the daily rate is mostly noise.
+        "reliable": reliable,
+        "next_month": shift_month(month, 1),
+        "next_month_label": month_label(shift_month(month, 1)),
+        "expected_spend": money(expected_next),
+        "suggested_goal": suggested_goal,
+        "suggested_from": (
+            plural(len(basis_values), "recent month") if basis_values else None
+        ),
+    }
+
+    # --- collective picture -------------------------------------------------
+    per_month_cats = []
+    for slot, cat in enumerate(CATEGORIES, start=1):
+        total = money(life_cats.get(cat, {}).get("total", 0.0))
+        per_month_cats.append(
+            {
+                "key": cat,
+                "label": CATEGORY_META[cat]["label"],
+                "slot": slot,
+                "total": total,
+                "avg_per_month": div(total, settled_months),
+                "share": pct(total, sum(
+                    life_cats.get(c, {}).get("total", 0.0) for c in CATEGORIES
+                )),
+                "this_month": next(c["amount"] for c in categories if c["key"] == cat),
+            }
+        )
+
+    lifetime = {
+        "months": months_tracked,
+        "entries": int(life["entries"] or 0),
+        "active_days": int(life["active_days"] or 0),
+        "spent": lifetime_spent,
+        "first_day": life["first_day"],
+        "last_day": life["last_day"],
+        "avg_monthly_spend": avg_spend,
+        "recent_avg_spend": recent_avg,
+        "avg_monthly_saved": avg_saved,
+        "avg_daily_spend": div(lifetime_spent, int(life["active_days"] or 0)),
+        "total_saved": money(sum(row["saved"] for row in past if row["income"] > 0)),
+        "best_month": best,
+        "worst_month": worst,
+        "categories": per_month_cats,
+    }
+
+    return {
+        "lifetime": lifetime,
+        "limits": limits,
+        "projection": projection,
+        "suggestions": _suggestions(
+            totals=totals,
+            categories=categories,
+            per_month_cats=per_month_cats,
+            projection=projection,
+            limits=limits,
+            habits=habits,
+            leaks=leaks,
+            past=past,
+            days_left=days_left,
+            is_current_month=is_current_month,
+        ),
+    }
+
+
+def _suggestions(
+    *,
+    totals: dict[str, Any],
+    categories: list[dict[str, Any]],
+    per_month_cats: list[dict[str, Any]],
+    projection: dict[str, Any],
+    limits: list[dict[str, Any]],
+    habits: list[dict[str, Any]],
+    leaks: list[dict[str, Any]],
+    past: list[dict[str, Any]],
+    days_left: int,
+    is_current_month: bool,
+) -> list[dict[str, Any]]:
+    """Concrete, costed moves — never "spend less"."""
+    out: list[dict[str, Any]] = []
+
+    def add(tone: str, icon: str, title: str, detail: str, amount: float | None = None) -> None:
+        out.append(
+            {
+                "tone": tone,
+                "icon": icon,
+                "title": title,
+                "detail": detail,
+                "amount": money(amount) if amount is not None else None,
+                "rank": TONE_RANK[tone],
+            }
+        )
+
+    # 1. the daily number that pulls a projected overspend back onto budget
+    if is_current_month and days_left > 0 and projection["over"] > 0:
+        goal_limit = next((l for l in limits if l["key"] == "goal"), None)
+        if goal_limit and not goal_limit["blown"]:
+            add(
+                "serious", "clock",
+                f"Hold to {fmt(goal_limit['per_day'])} a day to finish on budget",
+                f"You are projected {fmt(projection['over'])} over. "
+                f"{fmt(goal_limit['left'])} left across {plural(days_left, 'day')} keeps the "
+                f"savings goal whole.",
+                goal_limit["per_day"],
+            )
+        elif goal_limit:
+            add(
+                "critical", "warn",
+                "The budget is already spent",
+                f"{plural(days_left, 'day')} still to go. Every further rupee comes out of "
+                f"savings — the next realistic target is next month.",
+            )
+
+    # 2. categories running above their own long-run average
+    for cat in sorted(per_month_cats, key=lambda c: c["this_month"] - c["avg_per_month"], reverse=True):
+        gap = money(cat["this_month"] - cat["avg_per_month"])
+        if cat["key"] == "culture" or cat["avg_per_month"] <= 0 or gap <= 0:
+            continue
+        if gap < cat["avg_per_month"] * 0.15:
+            continue
+        add(
+            "warning", "up",
+            f"{cat['label']} is {fmt(gap)} above its usual",
+            f"{fmt(cat['this_month'])} this month against a {fmt(cat['avg_per_month'])} average. "
+            f"Bringing it back to normal frees {fmt(gap)}.",
+            gap,
+        )
+        break
+
+    # 3. a habit worth pricing per month
+    monthly_yardstick = max(
+        totals["spent"], next((c["avg_per_month"] for c in per_month_cats), 0), 1
+    )
+    for habit in habits:
+        months = int(habit["months"]) or 1
+        entries = int(habit["entries"]) or 1
+        per_month = money(float(habit["total"]) / months)
+        per_time = float(habit["total"]) / entries
+        # Small and frequent is a habit; large and repeated is just a bill.
+        if per_month <= 0 or per_time > monthly_yardstick * 0.05:
+            continue
+        add(
+            "info", "leak",
+            f"“{habit['label']}” costs about {fmt(per_month)} a month",
+            f"{plural(int(habit['entries']), 'entry', 'entries')} across "
+            f"{plural(months, 'month')} in {CATEGORY_META[habit['category']]['label']}. "
+            f"Halving it would add {fmt(per_month / 2)} a month to savings.",
+            per_month,
+        )
+        break
+
+    # 4. an unexpected-costs buffer, sized from what actually happened
+    unexpected = next((c for c in per_month_cats if c["key"] == "unexpected"), None)
+    if unexpected and unexpected["avg_per_month"] > 0 and len(past) >= 2:
+        add(
+            "info", "info",
+            f"Budget {fmt(unexpected['avg_per_month'])} a month for surprises",
+            "Unexpected costs are not really unexpected once you have a few months of them. "
+            "Treating that as a fixed cost stops them eating spending money meant for "
+            "something else.",
+            unexpected["avg_per_month"],
+        )
+
+    # 5. next month's savings goal, from what you have actually managed
+    if projection["suggested_goal"] > 0:
+        add(
+            "good", "target",
+            f"Set {projection['next_month_label']}'s savings goal to {fmt(projection['suggested_goal'])}",
+            f"You are spending about {fmt(projection['expected_spend'])} a month"
+            + (f", judged on your {projection['suggested_from']}" if projection["suggested_from"] else "")
+            + ". That leaves this much to put aside without changing anything else.",
+            projection["suggested_goal"],
+        )
+
+    # 6. a run of good months earns a harder target
+    kept = [row for row in past[-3:] if row["available"] > 0 and row["spent"] <= row["available"]]
+    if len(kept) >= 3 and totals["savings_goal"] > 0:
+        headroom = money(min(row["available"] - row["spent"] for row in kept))
+        if headroom > 0:
+            add(
+                "good", "star",
+                "Three months inside budget — you have room to save more",
+                f"The tightest of those three still finished {fmt(headroom)} under. Raising the "
+                f"goal by that much would have held every time.",
+                headroom,
+            )
+
+    out.sort(key=lambda item: item["rank"])
+    return out

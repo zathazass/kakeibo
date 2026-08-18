@@ -3,6 +3,7 @@ import { clamp01 } from "~/lib/format";
 import type { CategoryRow, Comparison } from "~/lib/types";
 import { CATEGORY_COLOR } from "~/lib/types";
 
+import { CategoryIcon } from "./CategoryIcon";
 import { Icon } from "./Icon";
 
 /**
@@ -25,6 +26,7 @@ export function CategoryPanel({
   return (
     <div className="card">
       <div className="card-head">
+        <span className="cardic"><Icon name="layers" size={15} /></span>
         <h2>Where the money went</h2>
         <span className="sub">
           Split by intent, not by shop — the same coffee is a Need or a Want depending on why
@@ -69,11 +71,19 @@ export function CategoryPanel({
 
       <div className="grid cols-4">
         {categories.map((c) => (
-          <div className="catcard" key={c.key}>
+          <div
+            className="catcard"
+            key={c.key}
+            style={{ "--cat": CATEGORY_COLOR[c.key] } as React.CSSProperties}
+          >
             <div className="top">
-              <i className="swatch" style={{ background: CATEGORY_COLOR[c.key] }} />
-              <span className="name">{c.label}</span>
-              <span className="jp">{c.jp}</span>
+              <span className="badge">
+                <CategoryIcon category={c.key} size={18} />
+              </span>
+              <span className="names">
+                <span className="name">{c.label}</span>
+                <span className="jp">{c.jp}</span>
+              </span>
             </div>
             <div className="amount tnum">{fmt.money(c.amount)}</div>
             <div className="bar">

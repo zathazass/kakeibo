@@ -167,6 +167,75 @@ export interface ReflectionQuestion {
   detail: string;
 }
 
+export interface OutlookLimit {
+  key: string;
+  label: string;
+  budget: number;
+  left: number;
+  per_day: number;
+  per_week: number;
+  used_pct: number;
+  blown: boolean;
+  tone: Tone;
+  detail: string;
+}
+
+export interface OutlookProjection {
+  spend: number;
+  savings: number;
+  over: number;
+  basis_days: number;
+  reliable: boolean;
+  next_month: string;
+  next_month_label: string;
+  expected_spend: number;
+  suggested_goal: number;
+  suggested_from: string | null;
+}
+
+export interface LifetimeCategory {
+  key: CategoryKey;
+  label: string;
+  slot: number;
+  total: number;
+  avg_per_month: number;
+  share: number;
+  this_month: number;
+}
+
+export interface Lifetime {
+  months: number;
+  entries: number;
+  active_days: number;
+  spent: number;
+  first_day: string | null;
+  last_day: string | null;
+  avg_monthly_spend: number;
+  recent_avg_spend: number;
+  avg_monthly_saved: number;
+  avg_daily_spend: number;
+  total_saved: number;
+  best_month: HistoryRow | null;
+  worst_month: HistoryRow | null;
+  categories: LifetimeCategory[];
+}
+
+export interface Suggestion {
+  tone: Tone;
+  icon: string;
+  title: string;
+  detail: string;
+  amount: number | null;
+  rank: number;
+}
+
+export interface Outlook {
+  lifetime: Lifetime;
+  limits: OutlookLimit[];
+  projection: OutlookProjection;
+  suggestions: Suggestion[];
+}
+
 export interface Dashboard {
   month: string;
   month_label: string;
@@ -195,5 +264,6 @@ export interface Dashboard {
   top_expenses: Expense[];
   expenses: Expense[];
   insights: Insight[];
+  outlook: Outlook;
   reflection_questions: ReflectionQuestion[];
 }

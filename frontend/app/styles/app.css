@@ -121,9 +121,9 @@ h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
 button, input, select, textarea { font: inherit; color: inherit; }
 
 .app {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 20px 24px 64px;
+  max-width: none;
+  margin: 0;
+  padding: 20px 28px 64px;
 }
 
 @media (max-width: 720px) {
@@ -197,6 +197,134 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .iconbtn:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
 .iconbtn[disabled] { opacity: 0.35; cursor: not-allowed; }
 
+/* ------------------------------------------------------------- app shell */
+
+.shell {
+  display: grid;
+  grid-template-columns: 212px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.sidenav { position: sticky; top: 20px; display: grid; gap: 20px; }
+
+.navlist { display: grid; gap: 3px; }
+
+.navitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.navitem:hover { background: var(--surface-1); color: var(--text-primary); }
+.navitem.is-on {
+  background: var(--surface-1);
+  border-color: var(--border);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+.navitem:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
+.navitem .ic { display: inline-flex; color: var(--text-muted); flex: none; }
+.navitem.is-on .ic { color: var(--series-1); }
+.navitem .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.navitem .count {
+  margin-left: auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border-radius: 999px;
+  padding: 1px 7px;
+  flex: none;
+}
+.navitem.is-on .count { color: var(--text-secondary); }
+
+.navfoot {
+  display: grid;
+  gap: 9px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+}
+.navhead {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.navlink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 2px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.navlink:hover { color: var(--text-primary); }
+.navlink:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; border-radius: 4px; }
+
+/* Ledger and Review pair a wide panel with a narrower companion. */
+.grid.ledgergrid { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; }
+
+@media (max-width: 1080px) {
+  .grid.ledgergrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Below this the rail becomes a row of tabs above the content. */
+@media (max-width: 1000px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .sidenav { position: static; gap: 12px; }
+  .navlist { display: flex; flex-wrap: wrap; gap: 6px; }
+  .navitem { width: auto; border-color: var(--border); }
+  .navfoot {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding-top: 12px;
+  }
+  .navfoot .navhead { display: none; }
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+.segmented button {
+  flex: 1;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.segmented button:hover { color: var(--text-primary); }
+.segmented button.is-on {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+.segmented button:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
+
 .pillbtn {
   height: 34px;
   padding: 0 14px;
@@ -221,6 +349,18 @@ button, input, select, textarea { font: inherit; color: inherit; }
   padding: 18px 20px;
 }
 
+.card-head .cardic {
+  display: inline-grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 9px;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  align-self: center;
+  flex: none;
+}
+
 .card-head {
   display: flex;
   align-items: baseline;
@@ -236,11 +376,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.grid.main { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; }
 .stack { display: grid; gap: 16px; }
 
 @media (max-width: 1080px) {
-  .grid.main { grid-template-columns: minmax(0, 1fr); }
   .grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 720px) {
@@ -273,10 +411,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .hero .caption { color: var(--text-secondary); font-size: 13px; margin-top: 6px; }
 
 .tile .label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--text-secondary);
   font-size: 12px;
   margin-bottom: 3px;
 }
+.tile .tic { display: inline-flex; color: var(--text-muted); flex: none; }
+.sparkline { display: block; margin-top: 9px; }
 .tile .value {
   font-size: 21px;
   font-weight: 600;
@@ -348,14 +491,18 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ----------------------------------------------------------- categories */
 
 .catcard { display: grid; gap: 9px; }
-.catcard .top { display: flex; align-items: baseline; gap: 8px; }
-.catcard .swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+.catcard .top { display: flex; align-items: center; gap: 10px; }
+.catcard .badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--cat) 15%, transparent);
+  color: var(--cat);
   flex: none;
-  transform: translateY(-1px);
 }
+.catcard .names { display: grid; min-width: 0; line-height: 1.3; }
 .catcard .name { font-weight: 600; font-size: 13.5px; }
 .catcard .jp { color: var(--text-muted); font-size: 12px; }
 .catcard .amount { font-size: 23px; font-weight: 600; letter-spacing: -0.02em; }
@@ -541,6 +688,105 @@ table.data .th-key {
   vertical-align: baseline;
 }
 
+/* --------------------------------------------------------------- outlook */
+
+.limits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+  gap: 16px;
+}
+
+.limit {
+  display: grid;
+  gap: 7px;
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-page);
+  border-left: 3px solid var(--series-1);
+}
+.limit.tone-good { border-left-color: var(--status-good); }
+.limit.tone-info { border-left-color: var(--series-1); }
+.limit.tone-critical { border-left-color: var(--status-critical); }
+.limit.is-blown { opacity: 0.72; }
+
+.limit .lim-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.limit .lim-label { font-size: 12.5px; font-weight: 600; }
+.limit .lim-budget { color: var(--text-muted); font-size: 11.5px; margin-left: auto; }
+
+.limit .lim-value {
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.limit .lim-value .per { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
+.limit .lim-value.is-blown {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--critical-text);
+}
+
+.limit .lim-foot { color: var(--text-secondary); font-size: 12px; }
+.limit .lim-detail { margin: 2px 0 0; color: var(--text-muted); font-size: 11.5px; line-height: 1.5; }
+
+.nextmonth .nm-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+/* This month laid over a usual month, per bucket. */
+.avgrows { display: grid; gap: 10px; }
+.avgrow {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr) 128px;
+  align-items: center;
+  gap: 12px;
+}
+.avgrow .ar-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--cat);
+}
+.avgrow .ar-track { position: relative; display: block; height: 20px; }
+.avgrow .ar-avg,
+.avgrow .ar-now {
+  position: absolute;
+  left: 0;
+  border-radius: 0 4px 4px 0;
+  display: block;
+}
+.avgrow .ar-avg {
+  top: 0;
+  bottom: 0;
+  background: var(--text-muted);
+  opacity: 0.28;
+}
+.avgrow .ar-now {
+  top: 4px;
+  bottom: 4px;
+  background: var(--series-1);
+}
+.avgrow .ar-now.is-over { background: var(--status-serious); }
+.avgrow .ar-nums { display: grid; text-align: right; line-height: 1.35; }
+.avgrow .ar-nums b { font-size: 12.5px; }
+.avgrow .ar-nums span { font-size: 11px; }
+
+@media (max-width: 720px) {
+  .avgrow { grid-template-columns: 96px minmax(0, 1fr); }
+  .avgrow .ar-nums { grid-column: 1 / -1; text-align: left; display: flex; gap: 8px; }
+}
+
 /* ------------------------------------------------------------- insights */
 
 .insight {
@@ -685,6 +931,7 @@ table.data .th-key {
 .catpick label:hover { border-color: var(--border-strong); }
 .catpick input { position: absolute; opacity: 0; width: 0; height: 0; }
 .catpick label .key { width: 9px; height: 9px; border-radius: 3px; }
+.catpick label svg { flex: none; }
 .catpick label:has(input:checked) {
   border-color: var(--text-primary);
   background: var(--surface-sunken);
@@ -713,29 +960,88 @@ table.data .th-key {
 
 .entry {
   display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  grid-template-columns: 20px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 6px 0;
 }
-.entry .key { width: 10px; height: 10px; border-radius: 3px; }
+.entry .cicon { display: inline-flex; align-items: center; justify-content: center; }
 .entry .note { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .entry .note .cat { color: var(--text-muted); font-size: 12px; margin-left: 7px; }
 .entry .amt { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
-.entry .del {
+/* Edit and delete are on every row, always present — quiet until you reach
+   for them, never hidden behind a hover the way the old delete was. */
+.entry .acts { display: flex; align-items: center; gap: 2px; }
+.entry .act {
   border: 0;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 3px 5px;
+  padding: 4px 5px;
   border-radius: 6px;
   line-height: 1;
-  opacity: 0;
-  transition: opacity 120ms ease, color 120ms ease;
+  opacity: 0.55;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
 }
-.entry:hover .del,
-.entry .del:focus-visible { opacity: 1; }
-.entry .del:hover { color: var(--critical-text); background: var(--surface-sunken); }
+.entry:hover .act { opacity: 1; }
+.entry .act:hover { color: var(--text-primary); background: var(--surface-sunken); }
+.entry .act.danger:hover { color: var(--critical-text); }
+.entry .act:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--series-1);
+  outline-offset: 1px;
+}
+
+.entry.confirming {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin: 3px -10px;
+}
+.entry.confirming .note { font-weight: 600; white-space: normal; }
+.entry.confirming .acts { gap: 7px; }
+
+.btn.tiny { height: 30px; padding: 0 12px; font-size: 12.5px; }
+.btn.danger { background: var(--status-critical); color: #fff; }
+
+/* Inline editor — same fields as the add form, sized for the rail. */
+.entry-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 9px 10px;
+  padding: 12px;
+  margin: 6px 0;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.entry-edit .wide { grid-column: 1 / -1; }
+.entry-edit .input { background: var(--surface-1); }
+.entry-edit .catpick label { padding: 5px 9px; font-size: 12px; }
+.entry-edit .acts { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.entry-edit .editerr { margin: 0; font-size: 12px; color: var(--critical-text); }
+
+.emptystate { text-align: center; padding: 22px 12px 12px; }
+.emptystate svg { width: 128px; height: auto; margin-bottom: 14px; }
+.emptystate .es-page { fill: var(--surface-sunken); stroke: var(--border-strong); stroke-width: 2; }
+.emptystate .es-spine { fill: none; stroke: var(--border-strong); stroke-width: 2; }
+.emptystate .es-rule {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.4;
+}
+.emptystate .es-coin { fill: var(--surface-1); stroke: var(--series-1); stroke-width: 2; }
+.emptystate .es-mark { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linecap: round; }
+.emptystate p {
+  margin: 0 auto 7px;
+  max-width: 44ch;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.emptystate p strong { color: var(--text-primary); }
 
 .scrolly { max-height: 460px; overflow-y: auto; padding-right: 4px; }
 
@@ -788,5 +1094,5 @@ table.data .th-key {
 
 /* Touch devices have no hover, so the delete affordance must always be there. */
 @media (hover: none) {
-  .entry .del { opacity: 1; }
+  .entry .act { opacity: 1; }
 }

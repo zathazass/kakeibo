@@ -17,6 +17,8 @@ interface Props {
  * Kakeibo's opening move: income, minus fixed costs, minus savings — and only
  * what survives that is the month's spending money.
  */
+import { Icon } from "./Icon";
+
 export function PlanCard({ month, monthLabel, plan, suggestion, totals, fmt }: Props) {
   const fetcher = useFetcher<{ ok: boolean }>();
   const [income, setIncome] = useState(String(plan.income || ""));
@@ -40,6 +42,7 @@ export function PlanCard({ month, monthLabel, plan, suggestion, totals, fmt }: P
   return (
     <div className="card">
       <div className="card-head">
+        <span className="cardic"><Icon name="wallet" size={15} /></span>
         <h2>Plan for {monthLabel}</h2>
         <span className="sub">Savings come off the top, before any spending</span>
       </div>

@@ -2,13 +2,12 @@ import { useState } from "react";
 
 import type { Formatters } from "~/lib/format";
 import { niceMax, ticks } from "~/lib/format";
+import { useElementWidth } from "~/lib/useElementWidth";
 import type { CategoryKey, DailyRow } from "~/lib/types";
 import { CATEGORY_COLOR, CATEGORY_ORDER } from "~/lib/types";
 
-const W = 1000;
 const H = 280;
 const PAD = { top: 22, right: 16, bottom: 34, left: 60 };
-const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 
 /** Column with a 4px rounded cap and a square foot on the baseline. */
@@ -34,11 +33,15 @@ interface Props {
 
 export function DailyChart({ daily, allowance, labels, fmt }: Props) {
   const [active, setActive] = useState<number | null>(null);
+  const [wrapRef, W] = useElementWidth<HTMLDivElement>(960);
 
+  const PLOT_W = Math.max(120, W - PAD.left - PAD.right);
   const peak = Math.max(...daily.map((d) => d.total), allowance, 0);
   const max = niceMax(peak || 1);
   const band = PLOT_W / daily.length;
   const barW = Math.max(3, Math.min(20, band - 8));
+  // With room to spare, label every day instead of every fifth.
+  const labelEvery = band >= 30 ? 1 : band >= 18 ? 2 : 5;
 
   const y = (value: number) => PAD.top + PLOT_H - (value / max) * PLOT_H;
   const x = (index: number) => PAD.left + index * band;
@@ -52,7 +55,7 @@ export function DailyChart({ daily, allowance, labels, fmt }: Props) {
   const row = active === null ? null : daily[active];
 
   return (
-    <div className="chart">
+    <div className="chart" ref={wrapRef}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Spending for each day of the month">
         {/* recessive grid: solid hairlines, one step off the surface */}
         {ticks(max).map((value) => (
@@ -127,7 +130,7 @@ export function DailyChart({ daily, allowance, labels, fmt }: Props) {
         ) : null}
 
         {daily.map((d, index) =>
-          d.day === 1 || d.day % 5 === 0 ? (
+          d.day === 1 || d.day % labelEvery === 0 ? (
             <text
               key={`t-${d.date}`}
               className="ticktext"

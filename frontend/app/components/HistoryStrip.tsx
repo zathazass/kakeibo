@@ -7,6 +7,8 @@ import type { HistoryRow } from "~/lib/types";
  * Twelve months of totals. One hue — this is magnitude over time, so the bars
  * carry length and the budget marker carries the verdict.
  */
+import { Icon } from "./Icon";
+
 export function HistoryStrip({
   history,
   activeMonth,
@@ -25,6 +27,7 @@ export function HistoryStrip({
   return (
     <div className="card">
       <div className="card-head">
+        <span className="cardic"><Icon name="trend" size={15} /></span>
         <h2>Recent months</h2>
         <span className="sub">Total spent each month</span>
         <span className="spacer" />

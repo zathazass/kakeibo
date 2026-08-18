@@ -3,11 +3,10 @@ import { useState } from "react";
 import type { Formatters } from "~/lib/format";
 import { niceMax, ticks } from "~/lib/format";
 import type { DailyRow } from "~/lib/types";
+import { useElementWidth } from "~/lib/useElementWidth";
 
-const W = 1000;
 const H = 250;
 const PAD = { top: 22, right: 16, bottom: 34, left: 60 };
-const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 
 interface Props {
@@ -23,7 +22,10 @@ interface Props {
  */
 export function PaceChart({ daily, available, fmt }: Props) {
   const [active, setActive] = useState<number | null>(null);
+  const [wrapRef, W] = useElementWidth<HTMLDivElement>(960);
 
+  const PLOT_W = Math.max(120, W - PAD.left - PAD.right);
+  const labelEvery = PLOT_W / daily.length >= 30 ? 1 : PLOT_W / daily.length >= 18 ? 2 : 5;
   const elapsed = daily.filter((d) => !d.is_future);
   const spent = elapsed.length ? elapsed[elapsed.length - 1].cumulative : 0;
   const max = niceMax(Math.max(spent, daily[daily.length - 1]?.pace ?? 0, available, 1));
@@ -45,7 +47,7 @@ export function PaceChart({ daily, available, fmt }: Props) {
   const overPace = row ? row.cumulative - row.pace : 0;
 
   return (
-    <div className="chart">
+    <div className="chart" ref={wrapRef}>
       <div className="legend" style={{ marginBottom: 8 }}>
         <span className="item">
           <i className="key line" style={{ background: "var(--series-1)" }} />
@@ -127,7 +129,7 @@ export function PaceChart({ daily, available, fmt }: Props) {
         <line className="axisline" x1={PAD.left} x2={W - PAD.right} y1={y(0)} y2={y(0)} />
 
         {daily.map((d, index) =>
-          d.day === 1 || d.day % 5 === 0 ? (
+          d.day === 1 || d.day % labelEvery === 0 ? (
             <text
               key={`t-${d.date}`}
               className="ticktext"

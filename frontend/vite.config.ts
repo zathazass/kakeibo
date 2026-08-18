@@ -15,6 +15,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": { target: API, changeOrigin: true },
+      // So the menu's "API docs" link resolves in dev, not just when FastAPI
+      // is serving the built SPA itself.
+      "/docs": { target: API, changeOrigin: true },
+      "/openapi.json": { target: API, changeOrigin: true },
     },
   },
 });

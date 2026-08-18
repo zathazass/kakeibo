@@ -13,6 +13,8 @@ interface Props {
 }
 
 /** The four questions a kakeibo month closes on, answered from the ledger. */
+import { Icon } from "./Icon";
+
 export function ReflectionPanel({ month, monthLabel, questions, reflection, fmt }: Props) {
   const fetcher = useFetcher<{ ok: boolean }>();
   const [text, setText] = useState(reflection);
@@ -31,6 +33,7 @@ export function ReflectionPanel({ month, monthLabel, questions, reflection, fmt 
   return (
     <div className="card">
       <div className="card-head">
+        <span className="cardic"><Icon name="quote" size={15} /></span>
         <h2>The four questions</h2>
         <span className="sub">{monthLabel} · answered from your entries</span>
       </div>

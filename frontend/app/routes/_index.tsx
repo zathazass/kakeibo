@@ -4,7 +4,6 @@ import {
   useLoaderData,
   useNavigation,
   useRouteError,
-  useSearchParams,
 } from "@remix-run/react";
 import type { ClientActionFunctionArgs, ClientLoaderFunctionArgs } from "@remix-run/react";
 import { useState, type ReactNode } from "react";
@@ -15,11 +14,12 @@ import { HistoryStrip } from "~/components/HistoryStrip";
 import { Icon } from "~/components/Icon";
 import { InsightsPanel } from "~/components/InsightsPanel";
 import { LedgerPanel } from "~/components/LedgerPanel";
+import { OutlookPanel } from "~/components/OutlookPanel";
 import { Overview } from "~/components/Overview";
 import { PaceChart } from "~/components/PaceChart";
 import { PlanCard } from "~/components/PlanCard";
+import { SideNav, type NavSection } from "~/components/SideNav";
 import { ReflectionPanel } from "~/components/ReflectionPanel";
-import { ThemeToggle } from "~/components/ThemeToggle";
 import { WeekdayPanel } from "~/components/WeekdayPanel";
 import { WeeklyPanel } from "~/components/WeeklyPanel";
 import { api } from "~/lib/api";
@@ -42,6 +42,15 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
     switch (intent) {
       case "add-expense": {
         await api.addExpense({
+          spent_on: String(form.get("spent_on")),
+          category: String(form.get("category") || "needs"),
+          amount: num("amount"),
+          note: String(form.get("note") ?? "").trim(),
+        });
+        break;
+      }
+      case "update-expense": {
+        await api.updateExpense(Number(form.get("id")), {
           spent_on: String(form.get("spent_on")),
           category: String(form.get("category") || "needs"),
           amount: num("amount"),
@@ -85,11 +94,43 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
   }
 }
 
+const SECTIONS = [
+  { key: "overview", label: "Overview", icon: "chart", hint: "Where the month stands, and what needs attention" },
+  { key: "spending", label: "Spending", icon: "layers", hint: "The four buckets, day by day, against the pace" },
+  { key: "trends", label: "Trends", icon: "trend", hint: "Weeks, days of the week, and recent months" },
+  { key: "outlook", label: "Outlook", icon: "target", hint: "Spending limits, predictions and what to change next" },
+  { key: "ledger", label: "Ledger", icon: "table", hint: "Set the month up and log what you spend" },
+  { key: "review", label: "Review", icon: "star", hint: "Close the month on the four questions" },
+] as const;
+
+type SectionKey = (typeof SECTIONS)[number]["key"];
+
+const VIEW_KEY = "kakeibo-view";
+
+function initialView(): SectionKey {
+  if (typeof window === "undefined") return "overview";
+  try {
+    const stored = localStorage.getItem(VIEW_KEY);
+    return SECTIONS.some((s) => s.key === stored) ? (stored as SectionKey) : "overview";
+  } catch {
+    return "overview";
+  }
+}
+
 export default function Index() {
   const data = useLoaderData<Dashboard>();
   const navigation = useNavigation();
-  const [searchParams] = useSearchParams();
   const fmt = formattersFor(data);
+  const [view, setView] = useState<SectionKey>(initialView);
+
+  const select = (key: string) => {
+    setView(key as SectionKey);
+    try {
+      localStorage.setItem(VIEW_KEY, key);
+    } catch {
+      /* private mode — the section just will not be remembered */
+    }
+  };
 
   const labels = Object.fromEntries(
     (Object.keys(data.category_meta) as CategoryKey[]).map((k) => [k, data.category_meta[k].label]),
@@ -101,6 +142,16 @@ export default function Index() {
   const hasPlan = data.totals.income > 0 || data.totals.fixed_costs > 0;
   const pending = navigation.state === "loading";
   const lastDay = String(data.days_in_month).padStart(2, "0");
+
+  const counts: Record<SectionKey, number | undefined> = {
+    overview: data.insights.filter((i) => i.group === "overspent").length,
+    spending: data.categories.filter((c) => c.amount > 0).length,
+    trends: undefined,
+    outlook: data.outlook.suggestions.length,
+    ledger: data.totals.entries,
+    review: undefined,
+  };
+  const sections: NavSection[] = SECTIONS.map((s) => ({ ...s, count: counts[s.key] }));
 
   return (
     <div className="app">
@@ -114,8 +165,13 @@ export default function Index() {
         <span className="spacer" />
 
         {/* One filter row above everything it scopes: the month drives every
-            number and every chart on the page. */}
+            number and every chart in every section. */}
         <div className="filterbar">
+          {data.month !== data.current_month ? (
+            <Link className="pillbtn" to="/">
+              This month
+            </Link>
+          ) : null}
           <div className="monthnav">
             <Link
               className="iconbtn"
@@ -135,115 +191,128 @@ export default function Index() {
               <Icon name="right" size={15} />
             </Link>
           </div>
-          {data.month !== data.current_month ? (
-            <Link className="pillbtn" to="/">
-              This month
-            </Link>
-          ) : null}
-          <ThemeToggle />
         </div>
       </header>
 
-      <div className="stack" data-pending={pending}>
-        <Overview
-          totals={data.totals}
-          comparison={data.comparison}
-          daysLeft={data.days_left}
-          daysElapsed={data.days_elapsed}
-          daysInMonth={data.days_in_month}
-          isCurrentMonth={data.is_current_month}
-          hasPlan={hasPlan}
-          fmt={fmt}
-        />
+      <div className="shell">
+        <SideNav sections={sections} active={view} onSelect={select} />
 
-        <InsightsPanel insights={data.insights} />
+        <div className="stack" data-pending={pending}>
+          {view === "overview" ? (
+            <>
+              <Overview
+                totals={data.totals}
+                comparison={data.comparison}
+                daily={data.daily}
+                daysLeft={data.days_left}
+                daysElapsed={data.days_elapsed}
+                daysInMonth={data.days_in_month}
+                isCurrentMonth={data.is_current_month}
+                hasPlan={hasPlan}
+                fmt={fmt}
+              />
+              <InsightsPanel insights={data.insights} />
+            </>
+          ) : null}
 
-        <div className="grid main">
-          <div className="stack">
-            <CategoryPanel
-              categories={data.categories}
-              spent={data.totals.spent}
-              comparison={data.comparison}
+          {view === "spending" ? (
+            <>
+              <CategoryPanel
+                categories={data.categories}
+                spent={data.totals.spent}
+                comparison={data.comparison}
+                fmt={fmt}
+              />
+              <ChartCard
+                title="Day by day"
+                sub={`Every day of ${data.month_label} — hover or focus a day for its breakdown`}
+                table={<DailyTable daily={data.daily} labels={labels} fmt={fmt} />}
+              >
+                <DailyChart
+                  daily={data.daily}
+                  allowance={hasPlan ? data.totals.daily_allowance : 0}
+                  labels={labels}
+                  fmt={fmt}
+                />
+              </ChartCard>
+              <ChartCard
+                title="Running total against pace"
+                sub="Where the month stands versus spending evenly across it"
+                table={<DailyTable daily={data.daily} labels={labels} fmt={fmt} />}
+              >
+                <PaceChart
+                  daily={data.daily}
+                  available={hasPlan ? data.totals.available_to_spend : 0}
+                  fmt={fmt}
+                />
+              </ChartCard>
+            </>
+          ) : null}
+
+          {view === "trends" ? (
+            <>
+              <WeeklyPanel weekly={data.weekly} labels={labels} hasPlan={hasPlan} fmt={fmt} />
+              <div className="grid cols-2">
+                <WeekdayPanel profile={data.weekday_profile} fmt={fmt} />
+                <HistoryStrip
+                  history={data.history}
+                  activeMonth={data.month}
+                  hasPlanAnywhere={data.history.some((row) => row.available > 0)}
+                  fmt={fmt}
+                />
+              </div>
+            </>
+          ) : null}
+
+          {view === "outlook" ? (
+            <OutlookPanel
+              outlook={data.outlook}
+              monthLabel={data.month_label}
+              daysLeft={data.days_left}
+              isCurrentMonth={data.is_current_month}
               fmt={fmt}
             />
+          ) : null}
 
-            <ChartCard
-              title="Day by day"
-              sub={`Every day of ${data.month_label} — hover or focus a day for its breakdown`}
-              table={<DailyTable daily={data.daily} labels={labels} fmt={fmt} />}
-            >
-              <DailyChart
-                daily={data.daily}
-                allowance={hasPlan ? data.totals.daily_allowance : 0}
+          {view === "ledger" ? (
+            <div className="grid ledgergrid">
+              <LedgerPanel
+                month={data.month}
+                expenses={data.expenses}
                 labels={labels}
+                hints={hints}
+                defaultDate={data.is_current_month ? data.today : `${data.month}-01`}
+                minDate={`${data.month}-01`}
+                maxDate={`${data.month}-${lastDay}`}
                 fmt={fmt}
               />
-            </ChartCard>
-
-            <ChartCard
-              title="Running total against pace"
-              sub="Where the month stands versus spending evenly across it"
-              table={<DailyTable daily={data.daily} labels={labels} fmt={fmt} />}
-            >
-              <PaceChart
-                daily={data.daily}
-                available={hasPlan ? data.totals.available_to_spend : 0}
-                fmt={fmt}
-              />
-            </ChartCard>
-
-            <WeeklyPanel weekly={data.weekly} labels={labels} hasPlan={hasPlan} fmt={fmt} />
-
-            <div className="grid cols-2">
-              <WeekdayPanel profile={data.weekday_profile} fmt={fmt} />
-              <HistoryStrip
-                history={data.history}
-                activeMonth={data.month}
-                hasPlanAnywhere={data.history.some((row) => row.available > 0)}
+              <PlanCard
+                key={`plan-${data.month}`}
+                month={data.month}
+                monthLabel={data.month_label}
+                plan={data.plan}
+                suggestion={data.plan_suggestion}
+                totals={data.totals}
                 fmt={fmt}
               />
             </div>
-          </div>
+          ) : null}
 
-          <div className="stack">
-            <PlanCard
-              key={`plan-${data.month}`}
-              month={data.month}
-              monthLabel={data.month_label}
-              plan={data.plan}
-              suggestion={data.plan_suggestion}
-              totals={data.totals}
-              fmt={fmt}
-            />
-
-            <LedgerPanel
-              month={data.month}
-              expenses={data.expenses}
-              labels={labels}
-              hints={hints}
-              defaultDate={data.is_current_month ? data.today : `${data.month}-01`}
-              minDate={`${data.month}-01`}
-              maxDate={`${data.month}-${lastDay}`}
-              fmt={fmt}
-            />
-
-            <ReflectionPanel
-              key={`reflect-${data.month}`}
-              month={data.month}
-              monthLabel={data.month_label}
-              questions={data.reflection_questions}
-              reflection={data.plan.reflection}
-              fmt={fmt}
-            />
-          </div>
+          {view === "review" ? (
+            <div className="grid ledgergrid">
+              <ReflectionPanel
+                key={`reflect-${data.month}`}
+                month={data.month}
+                monthLabel={data.month_label}
+                questions={data.reflection_questions}
+                reflection={data.plan.reflection}
+                fmt={fmt}
+              />
+              <InsightsPanel insights={data.insights} stacked />
+            </div>
+          ) : null}
         </div>
       </div>
-
-      <p className="emptynote" style={{ textAlign: "center", paddingTop: 22 }}>
-        Everything lives in a local SQLite file. Viewing {data.month_label}
-        {searchParams.get("month") ? " · " : ""}
-        {searchParams.get("month") ? <Link to="/">back to this month</Link> : null}
-      </p>
     </div>
   );
 }
