@@ -12,7 +12,7 @@ export default defineConfig({
     tsconfigPaths(),
   ],
   server: {
-    port: 5173,
+    port: 2455,
     proxy: {
       "/api": { target: API, changeOrigin: true },
       // So the menu's "API docs" link resolves in dev, not just when FastAPI

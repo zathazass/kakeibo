@@ -475,13 +475,13 @@
 <span class="p">$</span> source .venv/bin/activate
 <span class="p">$</span> uvicorn app.main:app --reload --port 8004</pre></div>
 
-    <div class="term"><pre><span class="c"># terminal two — the interface on port 5173</span>
+    <div class="term"><pre><span class="c"># terminal two — the interface on port 2455</span>
 <span class="p">$</span> cd ~/Office/kaKeiBo/frontend
 <span class="p">$</span> source ~/.nvm/nvm.sh &amp;&amp; nvm use   <span class="c"># reads .nvmrc → Node 22</span>
 <span class="p">$</span> npm run dev</pre></div>
     </div>
 
-    <p>Open <code>http://localhost:5173</code> in a browser.</p>
+    <p>Open <code>http://localhost:2455</code> in a browser.</p>
 
     <h3>Or as one process</h3>
     <p>Build the interface once and the API serves it too &mdash; a single port, no Node running:</p>

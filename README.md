@@ -93,7 +93,7 @@ nothing to migrate and no fixtures to load.
 ```bash
 cd frontend
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # http://localhost:2455
 ```
 
 The dev server proxies `/api` to `http://127.0.0.1:8004`, so run both together.
@@ -120,7 +120,7 @@ Every value is optional; copy `backend/.env.example` if you want to change any.
 | `KAKEIBO_DB` | `backend/kakeibo.db` | Where the ledger lives |
 | `KAKEIBO_CURRENCY` | `₹` | Symbol shown throughout |
 | `KAKEIBO_LOCALE` | `en-IN` | Number grouping (lakh/crore for `en-IN`) |
-| `KAKEIBO_CORS_ORIGINS` | localhost:5173, :3000 | Dev origins allowed to call the API |
+| `KAKEIBO_CORS_ORIGINS` | localhost:2455 | Dev origins allowed to call the API |
 | `KAKEIBO_FRONTEND_DIST` | `frontend/build/client` | Built SPA to serve |
 
 ## What the screen shows

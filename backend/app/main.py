@@ -83,7 +83,7 @@ else:
             {
                 "message": "API is running. The UI has not been built yet.",
                 "build_the_ui": "cd frontend && npm install && npm run build",
-                "or_run_it_in_dev": "cd frontend && npm run dev  (http://localhost:5173)",
+                "or_run_it_in_dev": "cd frontend && npm run dev  (http://localhost:2455)",
                 "api_docs": "/docs",
             }
         )
