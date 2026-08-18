@@ -1,5 +1,5 @@
 # Run the whole thing with:  mkdir -p data && docker compose up -d
-# Then open http://localhost:8004
+# Then open http://localhost:2455
 
 services:
   kakeibo:
@@ -15,7 +15,7 @@ services:
     image: kakeibo:latest
     container_name: kakeibo
     ports:
-      - "8004:8004"
+      - "2455:2455"
     volumes:
       # Your ledger lives here, on the host — back it up by copying this folder.
       # Swap for a named volume (kakeibo-data:/data) if you would rather Docker

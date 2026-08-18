@@ -2,7 +2,7 @@ import { vitePlugin as remix } from "@remix-run/dev";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-const API = process.env.KAKEIBO_API ?? "http://127.0.0.1:8004";
+const API = process.env.KAKEIBO_API ?? "http://127.0.0.1:2455";
 
 export default defineConfig({
   plugins: [
@@ -12,7 +12,7 @@ export default defineConfig({
     tsconfigPaths(),
   ],
   server: {
-    port: 2455,
+    port: 8004,
     proxy: {
       "/api": { target: API, changeOrigin: true },
       // So the menu's "API docs" link resolves in dev, not just when FastAPI

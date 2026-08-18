@@ -23,7 +23,7 @@ CORS_ORIGINS: list[str] = [
     origin.strip()
     for origin in os.getenv(
         "KAKEIBO_CORS_ORIGINS",
-        "http://localhost:2455,http://127.0.0.1:2455",
+        "http://localhost:8004,http://127.0.0.1:8004",
     ).split(",")
     if origin.strip()
 ]

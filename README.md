@@ -48,7 +48,7 @@ mkdir -p data
 docker compose up -d --build
 ```
 
-Open <http://127.0.0.1:8004>.
+Open <http://127.0.0.1:2455>.
 
 Your ledger lives in `./data/kakeibo.db` on the host, so backing it up is a file
 copy and the container stays disposable. Already have entries from running it
@@ -79,24 +79,24 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8004
+uvicorn app.main:app --reload --port 2455
 ```
 
 The SQLite file is created on first boot at `backend/kakeibo.db`. There is
 nothing to migrate and no fixtures to load.
 
-- API docs: <http://127.0.0.1:8004/docs>
-- Health check: <http://127.0.0.1:8004/api/health>
+- API docs: <http://127.0.0.1:2455/docs>
+- Health check: <http://127.0.0.1:2455/api/health>
 
 ### 2. Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev          # http://localhost:2455
+npm run dev          # http://localhost:8004
 ```
 
-The dev server proxies `/api` to `http://127.0.0.1:8004`, so run both together.
+The dev server proxies `/api` to `http://127.0.0.1:2455`, so run both together.
 Override the target with `KAKEIBO_API=http://host:port npm run dev`.
 
 ### 3. One-process mode without Docker (optional)
@@ -106,10 +106,10 @@ Node process at runtime:
 
 ```bash
 cd frontend && npm run build     # → frontend/build/client
-cd ../backend && uvicorn app.main:app --port 8004
+cd ../backend && uvicorn app.main:app --port 2455
 ```
 
-Then open <http://127.0.0.1:8004>.
+Then open <http://127.0.0.1:2455>.
 
 ## Configuration
 
@@ -120,7 +120,7 @@ Every value is optional; copy `backend/.env.example` if you want to change any.
 | `KAKEIBO_DB` | `backend/kakeibo.db` | Where the ledger lives |
 | `KAKEIBO_CURRENCY` | `₹` | Symbol shown throughout |
 | `KAKEIBO_LOCALE` | `en-IN` | Number grouping (lakh/crore for `en-IN`) |
-| `KAKEIBO_CORS_ORIGINS` | localhost:2455 | Dev origins allowed to call the API |
+| `KAKEIBO_CORS_ORIGINS` | localhost:8004 | Dev origins allowed to call the API |
 | `KAKEIBO_FRONTEND_DIST` | `frontend/build/client` | Built SPA to serve |
 
 ## What the screen shows

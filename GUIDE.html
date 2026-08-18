@@ -470,24 +470,24 @@
     <p>Two processes in development: the API, and the interface that talks to it.</p>
 
     <div class="term-pair">
-    <div class="term"><pre><span class="c"># terminal one — the API on port 8004</span>
+    <div class="term"><pre><span class="c"># terminal one — the API on port 2455</span>
 <span class="p">$</span> cd ~/Office/kaKeiBo/backend
 <span class="p">$</span> source .venv/bin/activate
-<span class="p">$</span> uvicorn app.main:app --reload --port 8004</pre></div>
+<span class="p">$</span> uvicorn app.main:app --reload --port 2455</pre></div>
 
-    <div class="term"><pre><span class="c"># terminal two — the interface on port 2455</span>
+    <div class="term"><pre><span class="c"># terminal two — the interface on port 8004</span>
 <span class="p">$</span> cd ~/Office/kaKeiBo/frontend
 <span class="p">$</span> source ~/.nvm/nvm.sh &amp;&amp; nvm use   <span class="c"># reads .nvmrc → Node 22</span>
 <span class="p">$</span> npm run dev</pre></div>
     </div>
 
-    <p>Open <code>http://localhost:2455</code> in a browser.</p>
+    <p>Open <code>http://localhost:8004</code> in a browser.</p>
 
     <h3>Or as one process</h3>
     <p>Build the interface once and the API serves it too &mdash; a single port, no Node running:</p>
     <div class="term"><pre><span class="p">$</span> cd ~/Office/kaKeiBo/frontend &amp;&amp; npm run build
-<span class="p">$</span> cd ../backend &amp;&amp; uvicorn app.main:app --port 8004</pre></div>
-    <p>Then open <code>http://127.0.0.1:8004</code> in a browser &mdash; rebuild it whenever you change the interface.</p>
+<span class="p">$</span> cd ../backend &amp;&amp; uvicorn app.main:app --port 2455</pre></div>
+    <p>Then open <code>http://127.0.0.1:2455</code> in a browser &mdash; rebuild it whenever you change the interface.</p>
   </section>
 
   <section id="plan">
@@ -743,7 +743,7 @@
 
     <h3>Straight to the data</h3>
     <p>
-      Interactive API documentation is at <code>http://127.0.0.1:8004/docs</code> &mdash; useful for bulk
+      Interactive API documentation is at <code>http://127.0.0.1:2455/docs</code> &mdash; useful for bulk
       entry, or for editing an entry in place, which the interface deliberately does not offer.
     </p>
   </section>
@@ -760,14 +760,14 @@
         <tbody>
           <tr>
             <th scope="row">&ldquo;The ledger could not be opened&rdquo;</th>
-            <td>The API is not answering. Start it: <code>uvicorn app.main:app --reload --port 8004</code>, then press <strong>Try again</strong>.</td>
+            <td>The API is not answering. Start it: <code>uvicorn app.main:app --reload --port 2455</code>, then press <strong>Try again</strong>.</td>
           </tr>
           <tr>
             <th scope="row">&ldquo;Oops, Node v16.20.2 detected&rdquo;</th>
             <td>The terminal did not load nvm. Run <code>source ~/.nvm/nvm.sh &amp;&amp; nvm use</code> in that tab, then <code>npm run dev</code> again.</td>
           </tr>
           <tr>
-            <th scope="row">Port 8004 already in use</th>
+            <th scope="row">Port 2455 already in use</th>
             <td>Pick another and tell both sides: start uvicorn with <code>--port 8010</code>, and run the interface with <code>KAKEIBO_API=http://127.0.0.1:8010 npm run dev</code>.</td>
           </tr>
         </tbody>

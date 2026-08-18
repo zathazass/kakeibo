@@ -377,7 +377,7 @@ export function ErrorBoundary() {
             overflowX: "auto",
           }}
         >
-          cd backend && uvicorn app.main:app --reload --port 8004
+          cd backend && uvicorn app.main:app --reload --port 2455
         </pre>
         <p className="muted" style={{ fontSize: 12.5 }}>
           {message}
