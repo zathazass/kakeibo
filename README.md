@@ -38,7 +38,39 @@ from 1904. Its defining moves, all of which this app implements literally:
 > ```
 > The Python side has no such constraint and runs as-is.
 
-## Setup
+## Run it with Docker (one command)
+
+The image builds the interface and hands it to FastAPI, so a single container
+serves both on one port. Nothing else is needed — no Node, no virtualenv.
+
+```bash
+mkdir -p data
+docker compose up -d --build
+```
+
+Open <http://127.0.0.1:8004>.
+
+Your ledger lives in `./data/kakeibo.db` on the host, so backing it up is a file
+copy and the container stays disposable. Already have entries from running it
+locally? Move them across before the first start:
+
+```bash
+mkdir -p data && cp backend/kakeibo.db data/
+```
+
+| | |
+|---|---|
+| Logs | `docker compose logs -f` |
+| Stop | `docker compose down` |
+| Rebuild after a code change | `docker compose up -d --build` |
+| Shell inside | `docker compose exec kakeibo sh` |
+
+The container runs unprivileged as uid 1000 so the bind-mounted `data/` stays
+writable without any chowning. If `id -u` reports something other than 1000, put
+`UID=` and `GID=` in a `.env` file next to `docker-compose.yml`. Currency and
+locale are set in `docker-compose.yml` under `environment`.
+
+## Setup for development
 
 ### 1. Backend
 
@@ -67,7 +99,7 @@ npm run dev          # http://localhost:5173
 The dev server proxies `/api` to `http://127.0.0.1:8004`, so run both together.
 Override the target with `KAKEIBO_API=http://host:port npm run dev`.
 
-### 3. One-process mode (optional)
+### 3. One-process mode without Docker (optional)
 
 Build the SPA and FastAPI will serve it alongside the API — a single port, no
 Node process at runtime:

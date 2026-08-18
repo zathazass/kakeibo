@@ -1,0 +1,27 @@
+# Run the whole thing with:  mkdir -p data && docker compose up -d
+# Then open http://localhost:8004
+
+services:
+  kakeibo:
+    build:
+      context: .
+      args:
+        # The container runs as this uid so the bind-mounted ./data stays
+        # writable. 1000 is the first Linux user and covers most machines; if
+        # `id -u` says otherwise, drop UID=... and GID=... into a .env file
+        # beside this one (bash will not let you export UID inline).
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
+    image: kakeibo:latest
+    container_name: kakeibo
+    ports:
+      - "8004:8004"
+    volumes:
+      # Your ledger lives here, on the host — back it up by copying this folder.
+      # Swap for a named volume (kakeibo-data:/data) if you would rather Docker
+      # kept it out of the way.
+      - ./data:/data
+    environment:
+      KAKEIBO_CURRENCY: "₹"
+      KAKEIBO_LOCALE: "en-IN"
+    restart: unless-stopped
