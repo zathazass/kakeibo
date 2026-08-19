@@ -1,4 +1,12 @@
-import type { BudgetView, Comparison, Dashboard, Expense, Plan } from "./types";
+import type {
+  Account,
+  AccountsView,
+  BudgetView,
+  Comparison,
+  Dashboard,
+  Expense,
+  Plan,
+} from "./types";
 
 /**
  * In dev, Vite proxies /api to the FastAPI server; in the built SPA, FastAPI
@@ -32,6 +40,22 @@ export const api = {
   dashboard: (month?: string) =>
     request<Dashboard>(`/dashboard${month ? `?month=${encodeURIComponent(month)}` : ""}`),
 
+  accounts: (month: string) => request<AccountsView>(`/accounts?month=${month}`),
+
+  createAccount: (payload: Record<string, unknown>) =>
+    request<Account>("/accounts", { method: "POST", body: JSON.stringify(payload) }),
+
+  updateAccount: (id: number, payload: Record<string, unknown>) =>
+    request<Account>(`/accounts/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+
+  deleteAccount: (id: number) => request<void>(`/accounts/${id}`, { method: "DELETE" }),
+
+  settleCard: (id: number, payload: { up_to?: string; paid_on?: string }) =>
+    request<{ settled: number; note: string }>(`/accounts/${id}/settle`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   budget: (month: string) => request<BudgetView>(`/months/${month}/budget`),
 
   saveBudget: (
@@ -52,6 +76,7 @@ export const api = {
     amount: number;
     note: string;
     tag: string;
+    account_id: number | null;
   }) => request<Expense>("/expenses", { method: "POST", body: JSON.stringify(payload) }),
 
   updateExpense: (
@@ -62,6 +87,7 @@ export const api = {
       amount: number;
       note: string;
       tag: string;
+      account_id: number | null;
     },
   ) => request<Expense>(`/expenses/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
 

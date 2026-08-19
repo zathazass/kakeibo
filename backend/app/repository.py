@@ -6,7 +6,9 @@ from typing import Any
 
 from .models import ExpenseIn, MonthPlanIn
 
-_EXPENSE_COLS = "id, spent_on, category, amount, note, tag, created_at"
+_EXPENSE_COLS = (
+    "id, spent_on, category, amount, note, tag, account_id, settled_on, created_at"
+)
 
 
 def _rows(cur: sqlite3.Cursor) -> list[dict[str, Any]]:
@@ -34,13 +36,15 @@ def get_expense(conn: sqlite3.Connection, expense_id: int) -> dict[str, Any] | N
 
 def create_expense(conn: sqlite3.Connection, payload: ExpenseIn) -> dict[str, Any]:
     cur = conn.execute(
-        "INSERT INTO expense (spent_on, category, amount, note, tag) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO expense (spent_on, category, amount, note, tag, account_id) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
         (
             payload.spent_on.isoformat(),
             payload.category,
             payload.amount,
             payload.note,
             payload.tag,
+            payload.account_id,
         ),
     )
     created = get_expense(conn, int(cur.lastrowid))
@@ -52,14 +56,15 @@ def update_expense(
     conn: sqlite3.Connection, expense_id: int, payload: ExpenseIn
 ) -> dict[str, Any] | None:
     conn.execute(
-        "UPDATE expense SET spent_on = ?, category = ?, amount = ?, note = ?, tag = ? "
-        "WHERE id = ?",
+        "UPDATE expense SET spent_on = ?, category = ?, amount = ?, note = ?, tag = ?, "
+        "account_id = ? WHERE id = ?",
         (
             payload.spent_on.isoformat(),
             payload.category,
             payload.amount,
             payload.note,
             payload.tag,
+            payload.account_id,
             expense_id,
         ),
     )
@@ -381,3 +386,122 @@ def tag_month_averages(
         }
         for row in cur.fetchall()
     }
+
+
+# ----------------------------------------------------------------- accounts
+
+_ACCOUNT_COLS = "id, name, bank, kind, credit_limit, note, archived"
+
+
+def list_accounts(conn: sqlite3.Connection, include_archived: bool = False) -> list[dict[str, Any]]:
+    sql = f"SELECT {_ACCOUNT_COLS} FROM account"
+    if not include_archived:
+        sql += " WHERE archived = 0"
+    sql += " ORDER BY archived, kind, name"
+    return _rows(conn.execute(sql))
+
+
+def get_account(conn: sqlite3.Connection, account_id: int) -> dict[str, Any] | None:
+    row = conn.execute(
+        f"SELECT {_ACCOUNT_COLS} FROM account WHERE id = ?", (account_id,)
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def create_account(conn: sqlite3.Connection, payload: Any) -> dict[str, Any]:
+    cur = conn.execute(
+        "INSERT INTO account (name, bank, kind, credit_limit, note) VALUES (?, ?, ?, ?, ?)",
+        (payload.name, payload.bank, payload.kind, payload.credit_limit, payload.note),
+    )
+    created = get_account(conn, int(cur.lastrowid))
+    assert created is not None
+    return created
+
+
+def update_account(
+    conn: sqlite3.Connection, account_id: int, payload: Any
+) -> dict[str, Any] | None:
+    conn.execute(
+        "UPDATE account SET name = ?, bank = ?, kind = ?, credit_limit = ?, note = ?, "
+        "archived = ? WHERE id = ?",
+        (
+            payload.name,
+            payload.bank,
+            payload.kind,
+            payload.credit_limit,
+            payload.note,
+            1 if payload.archived else 0,
+            account_id,
+        ),
+    )
+    return get_account(conn, account_id)
+
+
+def delete_account(conn: sqlite3.Connection, account_id: int) -> bool:
+    """Detach the account from its entries rather than deleting them."""
+    conn.execute("UPDATE expense SET account_id = NULL WHERE account_id = ?", (account_id,))
+    cur = conn.execute("DELETE FROM account WHERE id = ?", (account_id,))
+    return cur.rowcount > 0
+
+
+def account_month_spend(conn: sqlite3.Connection, month: str) -> dict[int, dict[str, Any]]:
+    cur = conn.execute(
+        """
+        SELECT account_id, ROUND(SUM(amount), 2) AS total, COUNT(*) AS entries
+        FROM expense
+        WHERE substr(spent_on, 1, 7) = ? AND account_id IS NOT NULL
+        GROUP BY account_id
+        """,
+        (month,),
+    )
+    return {
+        int(row["account_id"]): {"total": float(row["total"] or 0), "entries": int(row["entries"])}
+        for row in cur.fetchall()
+    }
+
+
+def credit_outstanding(conn: sqlite3.Connection) -> dict[int, dict[str, Any]]:
+    """Charges on a card that have not been settled yet — what you still owe."""
+    cur = conn.execute(
+        """
+        SELECT e.account_id,
+               ROUND(SUM(e.amount), 2) AS total,
+               COUNT(*)                AS entries,
+               MIN(e.spent_on)         AS oldest
+        FROM expense e
+        JOIN account a ON a.id = e.account_id
+        WHERE a.kind = 'credit' AND TRIM(e.settled_on) = ''
+        GROUP BY e.account_id
+        """
+    )
+    return {
+        int(row["account_id"]): {
+            "total": float(row["total"] or 0),
+            "entries": int(row["entries"]),
+            "oldest": row["oldest"],
+        }
+        for row in cur.fetchall()
+    }
+
+
+def unsettled_charges(conn: sqlite3.Connection, account_id: int) -> list[dict[str, Any]]:
+    return _rows(
+        conn.execute(
+            f"SELECT {_EXPENSE_COLS} FROM expense "
+            "WHERE account_id = ? AND TRIM(settled_on) = '' ORDER BY spent_on",
+            (account_id,),
+        )
+    )
+
+
+def settle_charges(
+    conn: sqlite3.Connection, account_id: int, up_to: str, paid_on: str
+) -> int:
+    """Mark card charges as paid. This is not a new expense — the spending was
+    already recorded on the day it happened; this only clears the debt."""
+    cur = conn.execute(
+        "UPDATE expense SET settled_on = ? "
+        "WHERE account_id = ? AND TRIM(settled_on) = '' AND spent_on <= ?",
+        (paid_on, account_id, up_to),
+    )
+    return cur.rowcount

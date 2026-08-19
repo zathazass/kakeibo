@@ -859,6 +859,72 @@ table.data .th-key {
   .tagrow .tg-nums { grid-column: 1 / -1; text-align: left; display: flex; gap: 8px; }
 }
 
+/* ------------------------------------------------------------- accounts */
+
+.acctgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.acct {
+  display: grid;
+  gap: 10px;
+  padding: 15px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-page);
+}
+.acct .ac-head { display: flex; align-items: center; gap: 10px; }
+.acct .ac-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.acct .ac-ic.kind-savings { background: color-mix(in srgb, var(--series-3) 16%, transparent); color: var(--series-3); }
+.acct .ac-ic.kind-spending { background: color-mix(in srgb, var(--series-1) 16%, transparent); color: var(--series-1); }
+.acct .ac-ic.kind-salary { background: color-mix(in srgb, var(--series-4) 18%, transparent); color: var(--series-4); }
+.acct .ac-ic.kind-credit { background: color-mix(in srgb, var(--series-2) 16%, transparent); color: var(--series-2); }
+.acct .ac-title { display: grid; min-width: 0; line-height: 1.3; }
+.acct .ac-title b { font-size: 13.5px; }
+.acct .ac-title span { font-size: 11.5px; color: var(--text-muted); }
+.acct .ac-head .act {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 5px;
+  border-radius: 6px;
+  opacity: 0.6;
+}
+.acct:hover .ac-head .act { opacity: 1; }
+.acct .ac-head .act:hover { background: var(--surface-sunken); color: var(--text-primary); }
+
+.acct .ac-body { display: flex; gap: 22px; flex-wrap: wrap; }
+.acct .ac-stat { display: grid; line-height: 1.35; }
+.acct .ac-stat .lbl { font-size: 11.5px; color: var(--text-secondary); }
+.acct .ac-stat b { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; }
+.acct .ac-stat b.over { color: var(--critical-text); }
+.acct .ac-stat .sub { font-size: 11.5px; color: var(--text-muted); }
+.acct .ac-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+.acct .ac-note {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
 /* -------------------------------------------------------- allocations */
 
 .alloc-summary {

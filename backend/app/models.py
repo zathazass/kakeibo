@@ -58,6 +58,28 @@ TAG_SUGGESTIONS: dict[str, list[str]] = {
 }
 
 
+AccountKind = Literal["savings", "spending", "salary", "credit"]
+
+ACCOUNT_KINDS: dict[str, dict[str, str]] = {
+    "savings": {
+        "label": "Savings",
+        "hint": "Money set aside. Kakeibo's savings goal should end up here.",
+    },
+    "spending": {
+        "label": "Spending",
+        "hint": "The everyday account most entries are paid from.",
+    },
+    "salary": {
+        "label": "Salary & investments",
+        "hint": "Where income lands, and where SIPs and other standing debits go out from.",
+    },
+    "credit": {
+        "label": "Credit card",
+        "hint": "Charged now, paid later. The spend still counts on the day you made it.",
+    },
+}
+
+
 def _round_money(value: float) -> float:
     return round(float(value), 2)
 
@@ -70,6 +92,7 @@ class ExpenseIn(BaseModel):
     amount: float = Field(gt=0, le=1_000_000_000)
     note: str = Field(default="", max_length=200)
     tag: str = Field(default="", max_length=60)
+    account_id: int | None = None
 
     @field_validator("amount")
     @classmethod
@@ -84,6 +107,8 @@ class ExpenseOut(BaseModel):
     amount: float
     note: str
     tag: str = ""
+    account_id: int | None = None
+    settled_on: str = ""
     created_at: str
 
 
@@ -107,3 +132,29 @@ class MonthPlanOut(BaseModel):
     fixed_costs: float
     savings_goal: float
     reflection: str
+
+
+class AccountIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=60)
+    bank: str = Field(default="", max_length=60)
+    kind: AccountKind
+    credit_limit: float = Field(default=0, ge=0, le=1_000_000_000)
+    note: str = Field(default="", max_length=200)
+    archived: bool = False
+
+    @field_validator("credit_limit")
+    @classmethod
+    def _money(cls, v: float) -> float:
+        return _round_money(v)
+
+
+class AccountOut(BaseModel):
+    id: int
+    name: str
+    bank: str
+    kind: AccountKind
+    credit_limit: float
+    note: str
+    archived: int

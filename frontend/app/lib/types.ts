@@ -118,6 +118,8 @@ export interface Expense {
   amount: number;
   note: string;
   tag: string;
+  account_id: number | null;
+  settled_on: string;
   created_at: string;
 }
 
@@ -344,6 +346,48 @@ export interface BudgetView {
   close_at: number;
 }
 
+export type AccountKind = "savings" | "spending" | "salary" | "credit";
+
+export interface Account {
+  id: number;
+  name: string;
+  bank: string;
+  kind: AccountKind;
+  credit_limit: number;
+  note: string;
+  archived: number;
+}
+
+export interface AccountLine extends Account {
+  kind_label: string;
+  kind_hint: string;
+  spent_this_month: number;
+  entries_this_month: number;
+  outstanding?: number;
+  unsettled_entries?: number;
+  oldest_unsettled?: string | null;
+  available?: number;
+  utilisation?: number;
+  utilisation_high?: boolean;
+}
+
+export interface AccountsView {
+  month: string;
+  kinds: { key: AccountKind; label: string; hint: string }[];
+  accounts: AccountLine[];
+  has_accounts: boolean;
+  credit: {
+    limit: number;
+    outstanding: number;
+    available: number;
+    utilisation: number;
+    flag_at: number;
+    cards: number;
+  };
+  unassigned: { total: number; share: number };
+  month_total: number;
+}
+
 export interface Rules {
   wants_flag_pct: number;
   wants_lean_pct: number;
@@ -373,6 +417,7 @@ export interface Dashboard {
   category_meta: Record<CategoryKey, { label: string; jp: string; hint: string }>;
   rules: Rules;
   tags: TagOptions;
+  accounts: Account[];
   plan: Plan;
   plan_suggestion: PlanSuggestion | null;
   totals: Totals;

@@ -3,11 +3,13 @@ import {
   Link,
   useLoaderData,
   useNavigation,
+  useRevalidator,
   useRouteError,
 } from "@remix-run/react";
 import type { ClientActionFunctionArgs, ClientLoaderFunctionArgs } from "@remix-run/react";
 import { useState, type ReactNode } from "react";
 
+import { AccountsPanel } from "~/components/AccountsPanel";
 import { BudgetPanel } from "~/components/BudgetPanel";
 import { CategoryPanel } from "~/components/CategoryPanel";
 import { ComparePanel } from "~/components/ComparePanel";
@@ -50,6 +52,7 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
           amount: num("amount"),
           note: String(form.get("note") ?? "").trim(),
           tag: String(form.get("tag") ?? "").trim(),
+          account_id: form.get("account_id") ? Number(form.get("account_id")) : null,
         });
         break;
       }
@@ -60,6 +63,7 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
           amount: num("amount"),
           note: String(form.get("note") ?? "").trim(),
           tag: String(form.get("tag") ?? "").trim(),
+          account_id: form.get("account_id") ? Number(form.get("account_id")) : null,
         });
         break;
       }
@@ -105,6 +109,7 @@ const SECTIONS = [
   { key: "trends", label: "Trends", icon: "trend", hint: "Weeks, days of the week, and recent months" },
   { key: "outlook", label: "Outlook", icon: "target", hint: "Spending limits, predictions and what to change next" },
   { key: "compare", label: "Compare", icon: "calendar", hint: "Month, quarter, half year and year side by side" },
+  { key: "accounts", label: "Accounts", icon: "coins", hint: "Bank accounts, cards, and what the card still owes" },
   { key: "budget", label: "Budget", icon: "wallet", hint: "Split the month's spending money by bucket and by label" },
   { key: "ledger", label: "Ledger", icon: "table", hint: "Set the month up and log what you spend" },
   { key: "review", label: "Review", icon: "star", hint: "Close the month on the four questions" },
@@ -128,6 +133,7 @@ function initialView(): SectionKey {
 export default function Index() {
   const data = useLoaderData<Dashboard>();
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const fmt = formattersFor(data);
   const [view, setView] = useState<SectionKey>(initialView);
 
@@ -158,6 +164,7 @@ export default function Index() {
     outlook: data.outlook.suggestions.length,
     compare: undefined,
     budget: undefined,
+    accounts: data.accounts.length,
     ledger: data.totals.entries,
     review: undefined,
     guide: undefined,
@@ -289,6 +296,15 @@ export default function Index() {
             <ComparePanel currency={data.currency} locale={data.locale} labels={labels} />
           ) : null}
 
+          {view === "accounts" ? (
+            <AccountsPanel
+              month={data.month}
+              monthLabel={data.month_label}
+              fmt={fmt}
+              onChanged={() => revalidator.revalidate()}
+            />
+          ) : null}
+
           {view === "budget" ? (
             <BudgetPanel
               key={`budget-${data.month}`}
@@ -308,6 +324,7 @@ export default function Index() {
                 labels={labels}
                 hints={hints}
                 tagOptions={data.tags}
+                accounts={data.accounts}
                 defaultDate={data.is_current_month ? data.today : `${data.month}-01`}
                 minDate={`${data.month}-01`}
                 maxDate={`${data.month}-${lastDay}`}

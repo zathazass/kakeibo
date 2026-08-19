@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import type { Formatters } from "~/lib/format";
 import { dayLabel, weekdayLabel } from "~/lib/format";
-import type { CategoryKey, Expense, TagOptions } from "~/lib/types";
+import type { Account, CategoryKey, Expense, TagOptions } from "~/lib/types";
 import { CATEGORY_COLOR, CATEGORY_ORDER } from "~/lib/types";
 
 import { CategoryIcon } from "./CategoryIcon";
@@ -18,6 +18,7 @@ interface Props {
   minDate: string;
   maxDate: string;
   tagOptions: TagOptions;
+  accounts: Account[];
   fmt: Formatters;
 }
 
@@ -41,6 +42,7 @@ export function LedgerPanel({
   minDate,
   maxDate,
   tagOptions,
+  accounts,
   fmt,
 }: Props) {
   const fetcher = useFetcher<{ ok: boolean; error?: string }>();
@@ -49,6 +51,7 @@ export function LedgerPanel({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [tag, setTag] = useState("");
+  const [account, setAccount] = useState("");
 
   useEffect(() => setDate(defaultDate), [defaultDate, month]);
 
@@ -168,6 +171,26 @@ export function LedgerPanel({
             </datalist>
           </div>
 
+          {accounts.length > 0 ? (
+            <div className="field">
+              <label htmlFor="account_id">Paid from</label>
+              <select
+                id="account_id"
+                name="account_id"
+                className="select"
+                value={account}
+                onChange={(event) => setAccount(event.target.value)}
+              >
+                <option value="">not recorded</option>
+                {accounts.map((a) => (
+                  <option value={a.id} key={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           <div className="submit">
             <button className="btn" type="submit" disabled={fetcher.state !== "idle"}>
               <Icon name="plus" size={14} /> Add
@@ -221,6 +244,7 @@ export function LedgerPanel({
                     labels={labels}
                     hints={hints}
                     tagOptions={tagOptions}
+                    accounts={accounts}
                     minDate={minDate}
                     maxDate={maxDate}
                     fmt={fmt}
@@ -246,6 +270,7 @@ function EntryRow({
   minDate,
   maxDate,
   tagOptions,
+  accounts,
   fmt,
 }: {
   entry: Expense;
@@ -254,6 +279,7 @@ function EntryRow({
   minDate: string;
   maxDate: string;
   tagOptions: TagOptions;
+  accounts: Account[];
   fmt: Formatters;
 }) {
   const fetcher = useFetcher<{ ok: boolean; error?: string }>();
@@ -352,6 +378,25 @@ function EntryRow({
             ))}
           </datalist>
         </div>
+
+        {accounts.length > 0 ? (
+          <div className="field wide">
+            <label htmlFor={`edit-account-${entry.id}`}>Paid from</label>
+            <select
+              id={`edit-account-${entry.id}`}
+              name="account_id"
+              className="select"
+              defaultValue={entry.account_id ?? ""}
+            >
+              <option value="">not recorded</option>
+              {accounts.map((a) => (
+                <option value={a.id} key={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         {fetcher.data?.error ? (
           <p className="editerr wide">Could not save that change: {fetcher.data.error}</p>

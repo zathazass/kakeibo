@@ -53,6 +53,8 @@ const SECTION_GUIDE: { key: string; label: string; icon: IconName; what: string 
     what: "What you may still spend per day under several ambitions, where the month lands, and costed suggestions." },
   { key: "compare", label: "Compare", icon: "calendar",
     what: "Month, quarter, half-year and year side by side — spent, saved and the movement between them, plus a breakdown by your own labels." },
+  { key: "accounts", label: "Accounts", icon: "coins",
+    what: "Your bank accounts and cards, what each one paid for this month, and how much the card still owes against its limit." },
   { key: "budget", label: "Budget", icon: "wallet",
     what: "Split the month's spending money between the four buckets, and set limits on individual labels. Optional, and planned fresh each month." },
   { key: "ledger", label: "Ledger", icon: "table",
@@ -250,6 +252,15 @@ export function GuidePanel({
               Run <code>./run.sh</code> in the project folder. It backs your ledger up, fetches the
               latest version, rebuilds, checks every entry survived, and tidies up after itself. If
               anything is missing it puts your data straight back.
+            </p>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 13.5, marginBottom: 4 }}>Card spending</h3>
+            <p className="secondary" style={{ fontSize: 12.5, margin: 0 }}>
+              A spend counts on the day you make it, not the day the bill is paid. A card purchase in
+              August is August&rsquo;s spending even though the money leaves your bank in September.
+              Never log the bill payment as an expense — use <em>Mark bill as paid</em> on the
+              Accounts tab, which clears the debt without counting the money twice.
             </p>
           </div>
           <div>

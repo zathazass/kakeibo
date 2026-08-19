@@ -180,6 +180,7 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
         "currency": CURRENCY,
         "locale": LOCALE,
         "category_meta": CATEGORY_META,
+        "accounts": repo.list_accounts(conn),
         "tags": {
             "suggestions": TAG_SUGGESTIONS,
             # Everything you have invented so far, offered back on the form.

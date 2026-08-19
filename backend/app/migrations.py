@@ -50,6 +50,33 @@ MIGRATIONS: list[tuple[int, list[str]]] = [
             "CREATE INDEX IF NOT EXISTS idx_budget_month ON budget (month)",
         ],
     ),
+    # Where the money came from. An account is a bank account or a card; every
+    # expense may name one. Kakeibo still records a spend on the day you spend
+    # it — a card charge belongs to the month you bought the thing, not the
+    # month the bill is paid — so credit charges carry a settled_on stamp
+    # instead, which is how the app knows what is still owed.
+    (
+        4,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS account (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                name         TEXT NOT NULL UNIQUE,
+                bank         TEXT NOT NULL DEFAULT '',
+                kind         TEXT NOT NULL,
+                credit_limit REAL NOT NULL DEFAULT 0,
+                note         TEXT NOT NULL DEFAULT '',
+                archived     INTEGER NOT NULL DEFAULT 0,
+                created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+                CHECK (kind IN ('savings', 'spending', 'salary', 'credit')),
+                CHECK (credit_limit >= 0)
+            )
+            """,
+            "ALTER TABLE expense ADD COLUMN account_id INTEGER REFERENCES account(id)",
+            "ALTER TABLE expense ADD COLUMN settled_on TEXT NOT NULL DEFAULT ''",
+            "CREATE INDEX IF NOT EXISTS idx_expense_account ON expense (account_id)",
+        ],
+    ),
 ]
 
 
