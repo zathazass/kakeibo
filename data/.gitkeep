@@ -1,0 +1,6 @@
+This file exists so that `data/` survives a git clone.
+
+Git cannot track empty directories. Without it, a fresh clone has no data/
+folder, Docker creates one when it mounts the volume, and Docker creates it
+owned by root — so the app, which runs unprivileged, cannot write its
+database there. That is the "unable to open database file" error.

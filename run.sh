@@ -60,7 +60,16 @@ docker compose version >/dev/null 2>&1 || die "This needs Docker Compose, which 
 command -v python3 >/dev/null || die "This needs python3 to check your data survived. Install it with: sudo apt install python3"
 ok "Docker is running"
 
-mkdir -p data "$BACKUPS"
+mkdir -p data "$BACKUPS" 2>/dev/null || true
+if [ ! -w data ]; then
+  echo
+  echo "  The data folder exists but this account cannot write to it."
+  echo "  Docker usually causes this by creating it as root. Fix it with:"
+  echo
+  echo "      sudo chown -R $(id -u):$(id -g) data"
+  echo
+  die "Then run ./run.sh again."
+fi
 
 BEFORE=$(count_entries "$DB")
 
@@ -97,7 +106,9 @@ fi
 # ------------------------------------------------------------------ 4. pull
 if [ "$PULL" -eq 1 ] && [ -d .git ]; then
   step "Fetching the latest version"
-  if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  # Ignore the ledger when deciding whether you have local edits — otherwise
+  # logging a single expense would stop updates being fetched ever again.
+  if [ -n "$(git status --porcelain --untracked-files=no -- . ':(exclude)data' ':(exclude)backend/*.db' 2>/dev/null)" ]; then
     warn "You have your own uncommitted changes — leaving the code as it is"
   elif ! git remote get-url origin >/dev/null 2>&1; then
     warn "No download location set up — using the code you already have"
