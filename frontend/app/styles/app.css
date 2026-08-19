@@ -859,6 +859,73 @@ table.data .th-key {
   .tagrow .tg-nums { grid-column: 1 / -1; text-align: left; display: flex; gap: 8px; }
 }
 
+/* -------------------------------------------------------- allocations */
+
+.alloc-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px 26px;
+}
+
+.allocrows { display: grid; gap: 4px; }
+
+.allocrow {
+  display: grid;
+  grid-template-columns: 190px 120px minmax(0, 1fr) 130px;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.allocrow:last-child { border-bottom: 0; }
+
+.allocrow .al-name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  min-width: 0;
+}
+.allocrow .al-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--cat) 15%, transparent);
+  color: var(--cat);
+  flex: none;
+}
+.allocrow .al-input { display: block; }
+.allocrow .al-input .input { text-align: right; font-variant-numeric: tabular-nums; }
+.allocrow .al-track { display: grid; gap: 5px; min-width: 0; }
+.allocrow .al-track .meter { height: 8px; }
+.allocrow .al-sub { font-size: 12px; color: var(--text-secondary); }
+.allocrow .al-hint { text-align: right; font-size: 12px; }
+
+.linkbtn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--series-1);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.linkbtn:hover { filter: brightness(1.1); }
+.linkbtn:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; border-radius: 3px; }
+
+@media (max-width: 900px) {
+  .allocrow {
+    grid-template-columns: minmax(0, 1fr) 110px;
+    gap: 8px 12px;
+  }
+  .allocrow .al-track { grid-column: 1 / -1; }
+  .allocrow .al-hint { grid-column: 1 / -1; text-align: left; }
+}
+
 /* --------------------------------------------------------------- outlook */
 
 .limits {

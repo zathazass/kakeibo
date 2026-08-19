@@ -310,3 +310,74 @@ def known_tags(conn: sqlite3.Connection) -> list[dict[str, Any]]:
         """
     )
     return _rows(cur)
+
+
+# ------------------------------------------------------------ budget limits
+
+
+def get_budgets(conn: sqlite3.Connection, month: str) -> list[dict[str, Any]]:
+    cur = conn.execute(
+        "SELECT scope, key, amount FROM budget WHERE month = ? ORDER BY scope, key",
+        (month,),
+    )
+    return _rows(cur)
+
+
+def set_budgets(
+    conn: sqlite3.Connection, month: str, rows: list[tuple[str, str, float]]
+) -> None:
+    """Replace the whole set for a month. A zero or missing row means no limit."""
+    conn.execute("DELETE FROM budget WHERE month = ?", (month,))
+    keepers = [(month, scope, key, amount) for scope, key, amount in rows if amount > 0]
+    if keepers:
+        conn.executemany(
+            "INSERT INTO budget (month, scope, key, amount) VALUES (?, ?, ?, ?)",
+            keepers,
+        )
+
+
+def month_tag_totals(conn: sqlite3.Connection, month: str) -> dict[str, dict[str, Any]]:
+    cur = conn.execute(
+        """
+        SELECT TRIM(tag) AS tag, category,
+               ROUND(SUM(amount), 2) AS total, COUNT(*) AS entries
+        FROM expense
+        WHERE substr(spent_on, 1, 7) = ? AND TRIM(tag) <> ''
+        GROUP BY TRIM(tag), category
+        """,
+        (month,),
+    )
+    return {
+        row["tag"]: {
+            "total": float(row["total"] or 0),
+            "entries": int(row["entries"]),
+            "category": row["category"],
+        }
+        for row in cur.fetchall()
+    }
+
+
+def tag_month_averages(
+    conn: sqlite3.Connection, exclude_month: str | None = None
+) -> dict[str, dict[str, Any]]:
+    """Average spend per month for each label, for suggesting allocations."""
+    sql = """
+        SELECT TRIM(tag) AS tag, category,
+               ROUND(SUM(amount), 2) AS total,
+               COUNT(DISTINCT substr(spent_on, 1, 7)) AS months
+        FROM expense
+        WHERE TRIM(tag) <> ''
+    """
+    params: list[Any] = []
+    if exclude_month:
+        sql += " AND substr(spent_on, 1, 7) <> ?"
+        params.append(exclude_month)
+    sql += " GROUP BY TRIM(tag), category"
+    cur = conn.execute(sql, params)
+    return {
+        row["tag"]: {
+            "avg": round(float(row["total"] or 0) / max(1, int(row["months"])), 2),
+            "category": row["category"],
+        }
+        for row in cur.fetchall()
+    }

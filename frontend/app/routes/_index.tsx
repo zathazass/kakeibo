@@ -8,6 +8,7 @@ import {
 import type { ClientActionFunctionArgs, ClientLoaderFunctionArgs } from "@remix-run/react";
 import { useState, type ReactNode } from "react";
 
+import { BudgetPanel } from "~/components/BudgetPanel";
 import { CategoryPanel } from "~/components/CategoryPanel";
 import { ComparePanel } from "~/components/ComparePanel";
 import { DailyChart, DailyTable } from "~/components/DailyChart";
@@ -104,6 +105,7 @@ const SECTIONS = [
   { key: "trends", label: "Trends", icon: "trend", hint: "Weeks, days of the week, and recent months" },
   { key: "outlook", label: "Outlook", icon: "target", hint: "Spending limits, predictions and what to change next" },
   { key: "compare", label: "Compare", icon: "calendar", hint: "Month, quarter, half year and year side by side" },
+  { key: "budget", label: "Budget", icon: "wallet", hint: "Split the month's spending money by bucket and by label" },
   { key: "ledger", label: "Ledger", icon: "table", hint: "Set the month up and log what you spend" },
   { key: "review", label: "Review", icon: "star", hint: "Close the month on the four questions" },
   { key: "guide", label: "Guide", icon: "help", hint: "How kakeibo works and how to read this app" },
@@ -155,6 +157,7 @@ export default function Index() {
     trends: undefined,
     outlook: data.outlook.suggestions.length,
     compare: undefined,
+    budget: undefined,
     ledger: data.totals.entries,
     review: undefined,
     guide: undefined,
@@ -284,6 +287,17 @@ export default function Index() {
 
           {view === "compare" ? (
             <ComparePanel currency={data.currency} locale={data.locale} labels={labels} />
+          ) : null}
+
+          {view === "budget" ? (
+            <BudgetPanel
+              key={`budget-${data.month}`}
+              month={data.month}
+              monthLabel={data.month_label}
+              labels={labels}
+              tagOptions={data.tags}
+              fmt={fmt}
+            />
           ) : null}
 
           {view === "ledger" ? (

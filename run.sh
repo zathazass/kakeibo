@@ -89,21 +89,7 @@ else
   ok "Starting with an empty ledger"
 fi
 
-# ------------------------------------------------------------- 2. stand down
-step "Stopping the app"
-docker compose down >/dev/null 2>&1 || true
-ok "Stopped — nothing is writing to your ledger now"
-
-# ---------------------------------------------------------------- 3. back up
-SAFETY=""
-if [ "$BEFORE" -gt 0 ]; then
-  step "Backing up your ledger"
-  SAFETY="$BACKUPS/before-update-$(date +%Y%m%d-%H%M%S).db"
-  cp "$DB" "$SAFETY"
-  ok "Saved a copy: $SAFETY"
-fi
-
-# ------------------------------------------------------------------ 4. pull
+# ------------------------------------------------------------------ 2. pull
 if [ "$PULL" -eq 1 ] && [ -d .git ]; then
   step "Fetching the latest version"
   # Ignore the ledger when deciding whether you have local edits — otherwise
@@ -119,17 +105,30 @@ if [ "$PULL" -eq 1 ] && [ -d .git ]; then
   fi
 fi
 
-# ----------------------------------------------------------------- 5. build
+# --- 3. build first, while the app is still up ------------------------
 step "Building the app (this can take a minute the first time)"
 LOG="$(mktemp)"
 trap 'rm -f "$LOG"' EXIT
 if ! docker compose build --quiet >"$LOG" 2>&1; then
   echo; sed 's/^/    /' "$LOG"
-  die "The build failed. Nothing was changed — your ledger is untouched in $DB."
+  die "The build failed. Nothing was changed — the app is still running on the version you had."
 fi
 ok "Built"
 
-# ----------------------------------------------------------------- 6. start
+# --------------------------------------------------- 4. stop and back up
+step "Stopping the app"
+docker compose down >/dev/null 2>&1 || true
+ok "Stopped — nothing is writing to your ledger now"
+
+SAFETY=""
+if [ "$BEFORE" -gt 0 ]; then
+  step "Backing up your ledger"
+  SAFETY="$BACKUPS/before-update-$(date +%Y%m%d-%H%M%S).db"
+  cp "$DB" "$SAFETY"
+  ok "Saved a copy: $SAFETY"
+fi
+
+# ----------------------------------------------------------------- 5. start
 step "Starting up"
 if ! docker compose up -d >"$LOG" 2>&1; then
   echo; sed 's/^/    /' "$LOG"
@@ -144,7 +143,7 @@ done
 [ "$READY" -eq 1 ] || die "The app did not answer within a minute. Run 'docker compose logs' to see why."
 ok "Running at $APP_URL"
 
-# ---------------------------------------------------------------- 7. verify
+# ---------------------------------------------------------------- 6. verify
 step "Checking your data came through"
 AFTER=$(count_entries "$DB")
 
@@ -157,7 +156,7 @@ if [ "$AFTER" -lt "$BEFORE" ]; then
 fi
 ok "$AFTER entries present and correct"
 
-# ---------------------------------------------------------------- 8. tidy up
+# ---------------------------------------------------------------- 7. tidy up
 step "Tidying up"
 # The safety copy has done its job — the live ledger is verified good.
 if [ -n "$SAFETY" ] && [ -f "$SAFETY" ]; then

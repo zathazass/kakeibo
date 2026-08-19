@@ -310,6 +310,40 @@ export interface TagOptions {
   used: string[];
 }
 
+export type BudgetState = "none" | "ok" | "close" | "over";
+export type BudgetPace = "none" | "behind" | "even" | "ahead";
+
+export interface BudgetLine {
+  key?: CategoryKey;
+  tag?: string;
+  category?: CategoryKey;
+  label: string;
+  slot?: number;
+  budget: number;
+  spent: number;
+  entries?: number;
+  left: number;
+  used_pct: number;
+  state: BudgetState;
+  pace: BudgetPace;
+  suggested: number;
+}
+
+export interface BudgetView {
+  month: string;
+  available: number;
+  allocated: number;
+  unallocated: number;
+  over_allocated: boolean;
+  tag_allocated: number;
+  spent: number;
+  has_budgets: boolean;
+  categories: (BudgetLine & { key: CategoryKey; slot: number })[];
+  tags: (BudgetLine & { tag: string; category: CategoryKey })[];
+  can_suggest: boolean;
+  close_at: number;
+}
+
 export interface Rules {
   wants_flag_pct: number;
   wants_lean_pct: number;

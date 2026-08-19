@@ -1,4 +1,4 @@
-import type { Comparison, Dashboard, Expense, Plan } from "./types";
+import type { BudgetView, Comparison, Dashboard, Expense, Plan } from "./types";
 
 /**
  * In dev, Vite proxies /api to the FastAPI server; in the built SPA, FastAPI
@@ -31,6 +31,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   dashboard: (month?: string) =>
     request<Dashboard>(`/dashboard${month ? `?month=${encodeURIComponent(month)}` : ""}`),
+
+  budget: (month: string) => request<BudgetView>(`/months/${month}/budget`),
+
+  saveBudget: (
+    month: string,
+    payload: { categories: Record<string, number>; tags: Record<string, number> },
+  ) =>
+    request<BudgetView>(`/months/${month}/budget`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
 
   compare: (grain: string) =>
     request<Comparison>(`/compare?grain=${encodeURIComponent(grain)}`),
