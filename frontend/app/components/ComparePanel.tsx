@@ -41,7 +41,7 @@ export function ComparePanel({
   const grains = data?.grains ?? [
     { key: "month", label: "Month" },
     { key: "quarter", label: "Quarter" },
-    { key: "half", label: "Half year" },
+    { key: "half", label: "Half" },
     { key: "year", label: "Year" },
   ];
 

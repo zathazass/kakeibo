@@ -17,7 +17,7 @@ from .models import CATEGORIES, CATEGORY_META
 GRAINS: list[dict[str, str]] = [
     {"key": "month", "label": "Month"},
     {"key": "quarter", "label": "Quarter"},
-    {"key": "half", "label": "Half year"},
+    {"key": "half", "label": "Half"},
     {"key": "year", "label": "Year"},
 ]
 GRAIN_KEYS = {g["key"] for g in GRAINS}
