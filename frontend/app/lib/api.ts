@@ -1,4 +1,4 @@
-import type { Dashboard, Expense, Plan } from "./types";
+import type { Comparison, Dashboard, Expense, Plan } from "./types";
 
 /**
  * In dev, Vite proxies /api to the FastAPI server; in the built SPA, FastAPI
@@ -32,16 +32,26 @@ export const api = {
   dashboard: (month?: string) =>
     request<Dashboard>(`/dashboard${month ? `?month=${encodeURIComponent(month)}` : ""}`),
 
+  compare: (grain: string) =>
+    request<Comparison>(`/compare?grain=${encodeURIComponent(grain)}`),
+
   addExpense: (payload: {
     spent_on: string;
     category: string;
     amount: number;
     note: string;
+    tag: string;
   }) => request<Expense>("/expenses", { method: "POST", body: JSON.stringify(payload) }),
 
   updateExpense: (
     id: number,
-    payload: { spent_on: string; category: string; amount: number; note: string },
+    payload: {
+      spent_on: string;
+      category: string;
+      amount: number;
+      note: string;
+      tag: string;
+    },
   ) => request<Expense>(`/expenses/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
 
   deleteExpense: (id: number) => request<void>(`/expenses/${id}`, { method: "DELETE" }),

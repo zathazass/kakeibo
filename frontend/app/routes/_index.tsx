@@ -9,6 +9,7 @@ import type { ClientActionFunctionArgs, ClientLoaderFunctionArgs } from "@remix-
 import { useState, type ReactNode } from "react";
 
 import { CategoryPanel } from "~/components/CategoryPanel";
+import { ComparePanel } from "~/components/ComparePanel";
 import { DailyChart, DailyTable } from "~/components/DailyChart";
 import { GuidePanel } from "~/components/GuidePanel";
 import { HistoryStrip } from "~/components/HistoryStrip";
@@ -47,6 +48,7 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
           category: String(form.get("category") || "needs"),
           amount: num("amount"),
           note: String(form.get("note") ?? "").trim(),
+          tag: String(form.get("tag") ?? "").trim(),
         });
         break;
       }
@@ -56,6 +58,7 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
           category: String(form.get("category") || "needs"),
           amount: num("amount"),
           note: String(form.get("note") ?? "").trim(),
+          tag: String(form.get("tag") ?? "").trim(),
         });
         break;
       }
@@ -100,6 +103,7 @@ const SECTIONS = [
   { key: "spending", label: "Spending", icon: "layers", hint: "The four buckets, day by day, against the pace" },
   { key: "trends", label: "Trends", icon: "trend", hint: "Weeks, days of the week, and recent months" },
   { key: "outlook", label: "Outlook", icon: "target", hint: "Spending limits, predictions and what to change next" },
+  { key: "compare", label: "Compare", icon: "calendar", hint: "Month, quarter, half year and year side by side" },
   { key: "ledger", label: "Ledger", icon: "table", hint: "Set the month up and log what you spend" },
   { key: "review", label: "Review", icon: "star", hint: "Close the month on the four questions" },
   { key: "guide", label: "Guide", icon: "help", hint: "How kakeibo works and how to read this app" },
@@ -150,6 +154,7 @@ export default function Index() {
     spending: data.categories.filter((c) => c.amount > 0).length,
     trends: undefined,
     outlook: data.outlook.suggestions.length,
+    compare: undefined,
     ledger: data.totals.entries,
     review: undefined,
     guide: undefined,
@@ -277,6 +282,10 @@ export default function Index() {
             />
           ) : null}
 
+          {view === "compare" ? (
+            <ComparePanel currency={data.currency} locale={data.locale} labels={labels} />
+          ) : null}
+
           {view === "ledger" ? (
             <div className="grid ledgergrid">
               <LedgerPanel
@@ -284,6 +293,7 @@ export default function Index() {
                 expenses={data.expenses}
                 labels={labels}
                 hints={hints}
+                tagOptions={data.tags}
                 defaultDate={data.is_current_month ? data.today : `${data.month}-01`}
                 minDate={`${data.month}-01`}
                 maxDate={`${data.month}-${lastDay}`}

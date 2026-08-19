@@ -801,6 +801,64 @@ table.data .th-key {
 }
 .grules dd { margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; }
 .grules dd strong { color: var(--text-primary); }
+/* ------------------------------------------------------------ tags/labels */
+
+.field > label .optional {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.entry .note .tagchip {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  vertical-align: 1px;
+}
+
+.tagrows { display: grid; gap: 9px; }
+.tagrow {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 120px;
+  align-items: center;
+  gap: 12px;
+}
+.tagrow .tg-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+.tagrow .tg-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tagrow .tg-track {
+  display: block;
+  height: 14px;
+  background: var(--surface-sunken);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.tagrow .tg-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.tagrow .tg-nums { display: grid; text-align: right; line-height: 1.35; }
+.tagrow .tg-nums b { font-size: 12.5px; }
+.tagrow .tg-nums span { font-size: 11px; }
+
+@media (max-width: 720px) {
+  .tagrow { grid-template-columns: 110px minmax(0, 1fr); }
+  .tagrow .tg-nums { grid-column: 1 / -1; text-align: left; display: flex; gap: 8px; }
+}
+
 /* --------------------------------------------------------------- outlook */
 
 .limits {

@@ -1,4 +1,10 @@
 -- Kakeibo ledger. Two tables: the monthly plan, and the expenses themselves.
+--
+-- FROZEN AT VERSION 1. Do not add columns here — this file runs before
+-- migrations, on databases that may be years old, so anything it references
+-- must exist in every database that ever shipped. Every change since v1 lives
+-- in migrations.py, which runs straight afterwards and is the only path that
+-- both a brand-new and a long-running database take.
 
 CREATE TABLE IF NOT EXISTS month_plan (
     month        TEXT PRIMARY KEY,

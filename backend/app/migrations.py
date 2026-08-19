@@ -20,7 +20,18 @@ import sqlite3
 # Version 1 is the baseline that `schema.sql` produces. Migrations start at 2.
 BASELINE_VERSION = 1
 
-MIGRATIONS: list[tuple[int, list[str]]] = []
+MIGRATIONS: list[tuple[int, list[str]]] = [
+    # A finer label underneath the kakeibo bucket — "Groceries" inside Needs,
+    # "Gadgets" inside Wants. Optional, free text, and the four buckets are
+    # untouched: this is an extra axis, not a replacement.
+    (
+        2,
+        [
+            "ALTER TABLE expense ADD COLUMN tag TEXT NOT NULL DEFAULT ''",
+            "CREATE INDEX IF NOT EXISTS idx_expense_tag ON expense (tag)",
+        ],
+    ),
+]
 
 
 def current_version(conn: sqlite3.Connection) -> int:

@@ -13,7 +13,7 @@ from typing import Any
 
 from . import repository as repo
 from .config import CURRENCY, LOCALE
-from .models import CATEGORIES, CATEGORY_META
+from .models import CATEGORIES, CATEGORY_META, TAG_SUGGESTIONS
 
 MONTH_NAMES = (
     "January", "February", "March", "April", "May", "June",
@@ -180,6 +180,11 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
         "currency": CURRENCY,
         "locale": LOCALE,
         "category_meta": CATEGORY_META,
+        "tags": {
+            "suggestions": TAG_SUGGESTIONS,
+            # Everything you have invented so far, offered back on the form.
+            "used": [row["tag"] for row in repo.known_tags(conn)],
+        },
         "rules": {
             "wants_flag_pct": WANTS_SHARE_FLAG,
             "wants_lean_pct": WANTS_LEAN_FLAG,

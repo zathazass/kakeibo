@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import type { Formatters } from "~/lib/format";
 import { dayLabel, weekdayLabel } from "~/lib/format";
-import type { CategoryKey, Expense } from "~/lib/types";
+import type { CategoryKey, Expense, TagOptions } from "~/lib/types";
 import { CATEGORY_COLOR, CATEGORY_ORDER } from "~/lib/types";
 
 import { CategoryIcon } from "./CategoryIcon";
@@ -17,7 +17,19 @@ interface Props {
   defaultDate: string;
   minDate: string;
   maxDate: string;
+  tagOptions: TagOptions;
   fmt: Formatters;
+}
+
+/**
+ * Everything offered in the tag box: the built-in suggestions for the chosen
+ * bucket, then every label you have invented yourself. Typing anything else is
+ * fine — a new tag exists the moment you save it.
+ */
+function tagChoices(options: TagOptions, category: CategoryKey): string[] {
+  const suggested = options.suggestions?.[category] ?? [];
+  const mine = options.used ?? [];
+  return Array.from(new Set([...mine, ...suggested])).filter(Boolean);
 }
 
 export function LedgerPanel({
@@ -28,6 +40,7 @@ export function LedgerPanel({
   defaultDate,
   minDate,
   maxDate,
+  tagOptions,
   fmt,
 }: Props) {
   const fetcher = useFetcher<{ ok: boolean; error?: string }>();
@@ -35,6 +48,7 @@ export function LedgerPanel({
   const [category, setCategory] = useState<CategoryKey>("needs");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [tag, setTag] = useState("");
 
   useEffect(() => setDate(defaultDate), [defaultDate, month]);
 
@@ -44,6 +58,7 @@ export function LedgerPanel({
     if (fetcher.state === "idle" && fetcher.data?.ok) {
       setAmount("");
       setNote("");
+      setTag("");
     }
   }, [fetcher.state, fetcher.data]);
 
@@ -132,6 +147,27 @@ export function LedgerPanel({
             />
           </div>
 
+          <div className="field wide">
+            <label htmlFor="tag">Label <span className="optional">optional — type your own</span></label>
+            <input
+              id="tag"
+              name="tag"
+              className="input"
+              type="text"
+              maxLength={60}
+              list="tag-choices"
+              autoComplete="off"
+              placeholder="Food, Snacks, Gadgets…"
+              value={tag}
+              onChange={(event) => setTag(event.target.value)}
+            />
+            <datalist id="tag-choices">
+              {tagChoices(tagOptions, category).map((choice) => (
+                <option value={choice} key={choice} />
+              ))}
+            </datalist>
+          </div>
+
           <div className="submit">
             <button className="btn" type="submit" disabled={fetcher.state !== "idle"}>
               <Icon name="plus" size={14} /> Add
@@ -184,6 +220,7 @@ export function LedgerPanel({
                     entry={entry}
                     labels={labels}
                     hints={hints}
+                    tagOptions={tagOptions}
                     minDate={minDate}
                     maxDate={maxDate}
                     fmt={fmt}
@@ -208,6 +245,7 @@ function EntryRow({
   hints,
   minDate,
   maxDate,
+  tagOptions,
   fmt,
 }: {
   entry: Expense;
@@ -215,6 +253,7 @@ function EntryRow({
   hints: Record<CategoryKey, string>;
   minDate: string;
   maxDate: string;
+  tagOptions: TagOptions;
   fmt: Formatters;
 }) {
   const fetcher = useFetcher<{ ok: boolean; error?: string }>();
@@ -294,6 +333,26 @@ function EntryRow({
           />
         </div>
 
+        <div className="field wide">
+          <label htmlFor={`edit-tag-${entry.id}`}>Label</label>
+          <input
+            id={`edit-tag-${entry.id}`}
+            name="tag"
+            className="input"
+            type="text"
+            maxLength={60}
+            list={`edit-tags-${entry.id}`}
+            autoComplete="off"
+            placeholder="Food, Snacks, Gadgets…"
+            defaultValue={entry.tag}
+          />
+          <datalist id={`edit-tags-${entry.id}`}>
+            {tagChoices(tagOptions, entry.category).map((choice) => (
+              <option value={choice} key={choice} />
+            ))}
+          </datalist>
+        </div>
+
         {fetcher.data?.error ? (
           <p className="editerr wide">Could not save that change: {fetcher.data.error}</p>
         ) : null}
@@ -341,6 +400,7 @@ function EntryRow({
       </span>
       <span className="note">
         {entry.note || <span className="muted">no note</span>}
+        {entry.tag ? <span className="tagchip">{entry.tag}</span> : null}
         <span className="cat">{labels[entry.category]}</span>
       </span>
       <span className="amt">{fmt.exact(entry.amount)}</span>

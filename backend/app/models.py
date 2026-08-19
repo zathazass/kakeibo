@@ -36,6 +36,28 @@ CATEGORY_META: dict[str, dict[str, str]] = {
 }
 
 
+# Suggestions only — the field is free text, and anything you type is kept.
+TAG_SUGGESTIONS: dict[str, list[str]] = {
+    "needs": [
+        "Groceries", "Vegetables", "Milk & dairy", "Transport", "Fuel",
+        "Rent", "Utilities", "Phone & internet", "Medicine", "Healthcare",
+        "Household", "Childcare", "Insurance",
+    ],
+    "wants": [
+        "Dining out", "Snacks", "Coffee & tea", "Gadgets", "Clothing",
+        "Entertainment", "Subscriptions", "Travel", "Hobbies", "Beauty",
+        "Takeaway",
+    ],
+    "culture": [
+        "Books", "Courses", "Music", "Museums", "Temple & offerings",
+        "Newspapers", "Software & tools",
+    ],
+    "unexpected": [
+        "Repairs", "Medical", "Gifts", "Fines", "Donations", "Travel emergency",
+    ],
+}
+
+
 def _round_money(value: float) -> float:
     return round(float(value), 2)
 
@@ -47,6 +69,7 @@ class ExpenseIn(BaseModel):
     category: Category
     amount: float = Field(gt=0, le=1_000_000_000)
     note: str = Field(default="", max_length=200)
+    tag: str = Field(default="", max_length=60)
 
     @field_validator("amount")
     @classmethod
@@ -60,6 +83,7 @@ class ExpenseOut(BaseModel):
     category: Category
     amount: float
     note: str
+    tag: str = ""
     created_at: str
 
 

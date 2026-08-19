@@ -117,6 +117,7 @@ export interface Expense {
   category: CategoryKey;
   amount: number;
   note: string;
+  tag: string;
   created_at: string;
 }
 
@@ -236,6 +237,79 @@ export interface Outlook {
   suggestions: Suggestion[];
 }
 
+export interface PeriodCategory {
+  key: CategoryKey;
+  label: string;
+  slot: number;
+  amount: number;
+  share: number;
+  avg_per_period?: number;
+}
+
+export interface Period {
+  key: string;
+  label: string;
+  span: string;
+  months: number;
+  month_keys: string[];
+  spent: number;
+  entries: number;
+  income: number;
+  fixed_costs: number;
+  savings_goal: number;
+  available: number;
+  saved: number;
+  savings_rate: number;
+  avg_per_month: number;
+  categories: PeriodCategory[];
+  delta: number;
+  delta_pct: number | null;
+  direction: "up" | "down" | "flat";
+}
+
+export interface TagTotal {
+  tag: string;
+  category: CategoryKey;
+  label: string;
+  total: number;
+  entries: number;
+  share: number;
+  avg: number;
+}
+
+export interface ComparisonSummary {
+  grain: string;
+  periods: number;
+  months: number;
+  entries: number;
+  total_spent: number;
+  total_income: number;
+  total_saved: number;
+  avg_per_period: number;
+  savings_rate: number;
+  highest: Period | null;
+  lowest: Period | null;
+  best_saved: Period | null;
+}
+
+export interface Comparison {
+  grain: string;
+  grains: { key: string; label: string }[];
+  currency: string;
+  locale: string;
+  periods: Period[];
+  summary: ComparisonSummary;
+  category_totals: PeriodCategory[];
+  tags: TagTotal[];
+  tagged_share: number;
+  top_expenses: Expense[];
+}
+
+export interface TagOptions {
+  suggestions: Record<CategoryKey, string[]>;
+  used: string[];
+}
+
 export interface Rules {
   wants_flag_pct: number;
   wants_lean_pct: number;
@@ -264,6 +338,7 @@ export interface Dashboard {
   locale: string;
   category_meta: Record<CategoryKey, { label: string; jp: string; hint: string }>;
   rules: Rules;
+  tags: TagOptions;
   plan: Plan;
   plan_suggestion: PlanSuggestion | null;
   totals: Totals;

@@ -6,7 +6,7 @@ from typing import Any
 
 from .models import ExpenseIn, MonthPlanIn
 
-_EXPENSE_COLS = "id, spent_on, category, amount, note, created_at"
+_EXPENSE_COLS = "id, spent_on, category, amount, note, tag, created_at"
 
 
 def _rows(cur: sqlite3.Cursor) -> list[dict[str, Any]]:
@@ -34,8 +34,14 @@ def get_expense(conn: sqlite3.Connection, expense_id: int) -> dict[str, Any] | N
 
 def create_expense(conn: sqlite3.Connection, payload: ExpenseIn) -> dict[str, Any]:
     cur = conn.execute(
-        "INSERT INTO expense (spent_on, category, amount, note) VALUES (?, ?, ?, ?)",
-        (payload.spent_on.isoformat(), payload.category, payload.amount, payload.note),
+        "INSERT INTO expense (spent_on, category, amount, note, tag) VALUES (?, ?, ?, ?, ?)",
+        (
+            payload.spent_on.isoformat(),
+            payload.category,
+            payload.amount,
+            payload.note,
+            payload.tag,
+        ),
     )
     created = get_expense(conn, int(cur.lastrowid))
     assert created is not None
@@ -46,12 +52,14 @@ def update_expense(
     conn: sqlite3.Connection, expense_id: int, payload: ExpenseIn
 ) -> dict[str, Any] | None:
     conn.execute(
-        "UPDATE expense SET spent_on = ?, category = ?, amount = ?, note = ? WHERE id = ?",
+        "UPDATE expense SET spent_on = ?, category = ?, amount = ?, note = ?, tag = ? "
+        "WHERE id = ?",
         (
             payload.spent_on.isoformat(),
             payload.category,
             payload.amount,
             payload.note,
+            payload.tag,
             expense_id,
         ),
     )
@@ -247,5 +255,58 @@ def recurring_habits(conn: sqlite3.Connection, min_months: int = 2) -> list[dict
         LIMIT 5
         """,
         (min_months,),
+    )
+    return _rows(cur)
+
+
+# ------------------------------------------------- cross-period aggregation
+
+
+def monthly_category_matrix(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    cur = conn.execute(
+        """
+        SELECT substr(spent_on, 1, 7) AS month, category,
+               ROUND(SUM(amount), 2) AS total, COUNT(*) AS entries
+        FROM expense GROUP BY 1, 2 ORDER BY 1
+        """
+    )
+    return _rows(cur)
+
+
+def monthly_tag_matrix(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    cur = conn.execute(
+        """
+        SELECT substr(spent_on, 1, 7) AS month, TRIM(tag) AS tag, category,
+               ROUND(SUM(amount), 2) AS total, COUNT(*) AS entries
+        FROM expense GROUP BY 1, 2, 3 ORDER BY 1
+        """
+    )
+    return _rows(cur)
+
+
+def all_plans(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    cur = conn.execute(
+        "SELECT month, income, fixed_costs, savings_goal FROM month_plan ORDER BY month"
+    )
+    return _rows(cur)
+
+
+def biggest_expenses(conn: sqlite3.Connection, limit: int = 10) -> list[dict[str, Any]]:
+    cur = conn.execute(
+        f"SELECT {_EXPENSE_COLS} FROM expense ORDER BY amount DESC, spent_on DESC LIMIT ?",
+        (limit,),
+    )
+    return _rows(cur)
+
+
+def known_tags(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    """Tags already in use, so the entry form can offer them back."""
+    cur = conn.execute(
+        """
+        SELECT TRIM(tag) AS tag, category, COUNT(*) AS entries,
+               ROUND(SUM(amount), 2) AS total
+        FROM expense WHERE TRIM(tag) <> ''
+        GROUP BY TRIM(tag), category ORDER BY entries DESC, total DESC
+        """
     )
     return _rows(cur)
