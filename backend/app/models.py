@@ -118,6 +118,7 @@ class MonthPlanIn(BaseModel):
     income: float = Field(default=0, ge=0, le=1_000_000_000)
     fixed_costs: float = Field(default=0, ge=0, le=1_000_000_000)
     savings_goal: float = Field(default=0, ge=0, le=1_000_000_000)
+    income_account_id: int | None = None
     reflection: str = Field(default="", max_length=4000)
 
     @field_validator("income", "fixed_costs", "savings_goal")
@@ -131,6 +132,7 @@ class MonthPlanOut(BaseModel):
     income: float
     fixed_costs: float
     savings_goal: float
+    income_account_id: int | None = None
     reflection: str
 
 
@@ -141,10 +143,11 @@ class AccountIn(BaseModel):
     bank: str = Field(default="", max_length=60)
     kind: AccountKind
     credit_limit: float = Field(default=0, ge=0, le=1_000_000_000)
+    opening_balance: float = Field(default=0, ge=-1_000_000_000, le=1_000_000_000)
     note: str = Field(default="", max_length=200)
     archived: bool = False
 
-    @field_validator("credit_limit")
+    @field_validator("credit_limit", "opening_balance")
     @classmethod
     def _money(cls, v: float) -> float:
         return _round_money(v)
@@ -156,5 +159,48 @@ class AccountOut(BaseModel):
     bank: str
     kind: AccountKind
     credit_limit: float
+    opening_balance: float = 0
     note: str
     archived: int
+
+
+TransferKind = Literal["transfer", "sip"]
+
+TRANSFER_KINDS: dict[str, dict[str, str]] = {
+    "transfer": {
+        "label": "Transfer",
+        "hint": "Moving your own money between accounts. Not spending.",
+    },
+    "sip": {
+        "label": "SIP / investment",
+        "hint": "Money invested. This is your savings goal being carried out, "
+        "not money spent — so it never appears in the four buckets.",
+    },
+}
+
+
+class TransferIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    moved_on: date
+    from_account_id: int | None = None
+    to_account_id: int | None = None
+    amount: float = Field(gt=0, le=1_000_000_000)
+    kind: TransferKind = "transfer"
+    note: str = Field(default="", max_length=200)
+
+    @field_validator("amount")
+    @classmethod
+    def _amount(cls, v: float) -> float:
+        return _round_money(v)
+
+
+class TransferOut(BaseModel):
+    id: int
+    moved_on: str
+    from_account_id: int | None
+    to_account_id: int | None
+    amount: float
+    kind: TransferKind
+    note: str
+    created_at: str

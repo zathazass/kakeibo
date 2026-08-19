@@ -6,6 +6,7 @@ import type {
   Dashboard,
   Expense,
   Plan,
+  Transfer,
 } from "./types";
 
 /**
@@ -56,6 +57,19 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  transfers: (month: string) => request<Transfer[]>(`/transfers?month=${month}`),
+
+  addTransfer: (payload: {
+    moved_on: string;
+    from_account_id: number | null;
+    to_account_id: number | null;
+    amount: number;
+    kind: string;
+    note: string;
+  }) => request<Transfer>("/transfers", { method: "POST", body: JSON.stringify(payload) }),
+
+  deleteTransfer: (id: number) => request<void>(`/transfers/${id}`, { method: "DELETE" }),
+
   budget: (month: string) => request<BudgetView>(`/months/${month}/budget`),
 
   saveBudget: (
@@ -97,7 +111,13 @@ export const api = {
 
   savePlan: (
     month: string,
-    payload: { income: number; fixed_costs: number; savings_goal: number; reflection: string },
+    payload: {
+      income: number;
+      fixed_costs: number;
+      savings_goal: number;
+      income_account_id: number | null;
+      reflection: string;
+    },
   ) =>
     request<unknown>(`/months/${month}/plan`, {
       method: "PUT",

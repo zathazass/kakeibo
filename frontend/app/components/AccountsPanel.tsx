@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "~/lib/api";
 import type { Formatters } from "~/lib/format";
 import { clamp01, todayISO } from "~/lib/format";
-import type { AccountKind, AccountLine, AccountsView } from "~/lib/types";
+import type { AccountKind, AccountLine, AccountsView, TransferKind } from "~/lib/types";
 
 import { Icon, type IconName } from "./Icon";
 
@@ -40,6 +40,14 @@ export function AccountsPanel({
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [form, setForm] = useState({ ...BLANK });
   const [settled, setSettled] = useState<string | null>(null);
+  const [move, setMove] = useState({
+    moved_on: todayISO(),
+    from_account_id: "",
+    to_account_id: "",
+    amount: "",
+    kind: "sip" as TransferKind,
+    note: "",
+  });
 
   const load = () => {
     setBusy(true);
@@ -131,6 +139,42 @@ export function AccountsPanel({
     }
   };
 
+  const addMove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.addTransfer({
+        moved_on: move.moved_on,
+        from_account_id: move.from_account_id ? Number(move.from_account_id) : null,
+        to_account_id: move.to_account_id ? Number(move.to_account_id) : null,
+        amount: Number(move.amount) || 0,
+        kind: move.kind,
+        note: move.note.trim(),
+      });
+      setMove({ ...move, amount: "", note: "" });
+      await load();
+      onChanged();
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  };
+
+  const removeMove = async (id: number) => {
+    setBusy(true);
+    try {
+      await api.deleteTransfer(id);
+      await load();
+      onChanged();
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  };
+
+  const named = (id: number | null) =>
+    id ? (view?.accounts.find((a) => a.id === id)?.name ?? "—") : "outside";
+
   const live = (view?.accounts ?? []).filter((a) => !a.archived);
   const archived = (view?.accounts ?? []).filter((a) => a.archived);
   const credit = view?.credit;
@@ -220,6 +264,20 @@ export function AccountsPanel({
             <span className="sub">{account.entries_this_month} entries</span>
           </div>
 
+          {!isCredit && account.has_balance ? (
+            <div className="ac-stat">
+              <span className="lbl">Balance</span>
+              <b>{fmt.money(account.balance ?? 0)}</b>
+              <span className="sub">
+                {account.salary_this_month > 0
+                  ? `${fmt.money(account.salary_this_month)} salary this month`
+                  : account.moved_in_month > 0
+                    ? `${fmt.money(account.moved_in_month)} moved in`
+                    : "opening + in − out"}
+              </span>
+            </div>
+          ) : null}
+
           {isCredit ? (
             <div className="ac-stat">
               <span className="lbl">Owed on the card</span>
@@ -271,6 +329,50 @@ export function AccountsPanel({
         </div>
 
         {settled ? <div className="notice" style={{ marginBottom: 14 }}>{settled}</div> : null}
+
+        {view ? (
+          <>
+            <div className="tilerow" style={{ marginBottom: 16 }}>
+              <div className="tile">
+                <div className="label"><span className="tic"><Icon name="coins" size={13} /></span>Salary this month</div>
+                <div className="value">{fmt.money(view.salary.amount)}</div>
+                <div className="foot">
+                  {view.salary.account_name
+                    ? `lands in ${view.salary.account_name}`
+                    : "set which account it lands in, on the Ledger tab"}
+                </div>
+              </div>
+              <div className="tile">
+                <div className="label"><span className="tic"><Icon name="target" size={13} /></span>Put aside this month</div>
+                <div className="value">{fmt.money(view.savings.put_aside)}</div>
+                <div className="foot">
+                  {view.savings.sip > 0 ? `${fmt.money(view.savings.sip)} invested` : "nothing invested yet"}
+                  {view.savings.into_savings > 0 ? ` · ${fmt.money(view.savings.into_savings)} to savings` : ""}
+                </div>
+              </div>
+              <div className="tile">
+                <div className="label"><span className="tic"><Icon name="check" size={13} /></span>Savings goal</div>
+                <div className="value">{fmt.money(view.savings.goal)}</div>
+                <div className="foot">
+                  {view.savings.goal <= 0
+                    ? "no goal set for this month"
+                    : view.savings.met
+                      ? "met — the money has actually moved"
+                      : `${fmt.money(view.savings.short_by)} still to move across`}
+                </div>
+              </div>
+            </div>
+            {view.savings.goal > 0 ? (
+              <div className="meter" style={{ marginBottom: 16 }}>
+                <div
+                  className={`fill ${view.savings.met ? "" : "warning"}`}
+                  style={{ width: `${clamp01(view.savings.put_aside / view.savings.goal) * 100}%` }}
+                />
+              </div>
+            ) : null}
+            <hr className="hr" />
+          </>
+        ) : null}
 
         {credit && credit.cards > 0 ? (
           <>
@@ -330,6 +432,98 @@ export function AccountsPanel({
 
       {editing !== null ? formCard : null}
 
+      {view?.has_accounts ? (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-head">
+            <span className="cardic"><Icon name="trend" size={15} /></span>
+            <h2>Money moved</h2>
+            <span className="sub">SIPs and transfers between your own accounts — never spending</span>
+          </div>
+
+          <div className="movegrid">
+            <div className="field">
+              <label htmlFor="mv-kind">What</label>
+              <select id="mv-kind" className="select" value={move.kind}
+                      onChange={(e) => setMove({ ...move, kind: e.target.value as TransferKind })}>
+                {(view.transfer_kinds ?? []).map((k) => (
+                  <option value={k.key} key={k.key}>{k.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="mv-date">Date</label>
+              <input id="mv-date" className="input" type="date" value={move.moved_on}
+                     onChange={(e) => setMove({ ...move, moved_on: e.target.value })} />
+            </div>
+            <div className="field">
+              <label htmlFor="mv-from">Out of</label>
+              <select id="mv-from" className="select" value={move.from_account_id}
+                      onChange={(e) => setMove({ ...move, from_account_id: e.target.value })}>
+                <option value="">—</option>
+                {live.map((a) => <option value={a.id} key={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="mv-to">Into</label>
+              <select id="mv-to" className="select" value={move.to_account_id}
+                      onChange={(e) => setMove({ ...move, to_account_id: e.target.value })}>
+                <option value="">{move.kind === "sip" ? "an investment" : "—"}</option>
+                {live.map((a) => <option value={a.id} key={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="mv-amt">Amount</label>
+              <input id="mv-amt" className="input" type="number" min="0.01" step="0.01"
+                     inputMode="decimal" placeholder="0.00" value={move.amount}
+                     onChange={(e) => setMove({ ...move, amount: e.target.value })} />
+            </div>
+            <div className="field wide">
+              <label htmlFor="mv-note">Note</label>
+              <input id="mv-note" className="input" type="text" maxLength={200}
+                     placeholder={move.kind === "sip" ? "Nifty index fund" : "moved to savings"}
+                     value={move.note} onChange={(e) => setMove({ ...move, note: e.target.value })} />
+            </div>
+            <div className="submit">
+              <button className="btn" type="button" onClick={addMove}
+                      disabled={busy || !(Number(move.amount) > 0)}>
+                <Icon name="plus" size={13} /> Record
+              </button>
+            </div>
+          </div>
+
+          <p className="secondary" style={{ fontSize: 12, marginTop: 4 }}>
+            {(view.transfer_kinds ?? []).find((k) => k.key === move.kind)?.hint}
+          </p>
+
+          <hr className="hr" />
+
+          {view.transfers.length === 0 ? (
+            <div className="emptynote">Nothing moved this month yet.</div>
+          ) : (
+            view.transfers.map((t) => (
+              <div className="entry" key={t.id}>
+                <span className="cicon" style={{ color: t.kind === "sip" ? "var(--series-3)" : "var(--series-1)" }}>
+                  <Icon name={t.kind === "sip" ? "target" : "right"} size={15} />
+                </span>
+                <span className="note">
+                  {t.note || <span className="muted">no note</span>}
+                  <span className="cat">
+                    {named(t.from_account_id)} → {t.to_account_id ? named(t.to_account_id) : "investment"} · {t.moved_on}
+                  </span>
+                </span>
+                <span className="amt">{fmt.money(t.amount)}</span>
+                <span className="acts">
+                  <button className="act danger" type="button" title="Remove"
+                          aria-label={`Remove ${t.note || "transfer"}`} onClick={() => removeMove(t.id)}>
+                    <Icon name="trash" size={14} />
+                  </button>
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      ) : null}
+
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-head">
           <span className="cardic"><Icon name="info" size={15} /></span>
@@ -345,6 +539,11 @@ export function AccountsPanel({
           So <strong>do not log the bill payment as an expense</strong> — that would count the same
           money twice. Press <em>Mark bill as paid</em> on the card instead: it clears what is owed
           without touching any month&rsquo;s totals.
+        </p>
+        <p className="secondary" style={{ fontSize: 13, marginTop: 10, marginBottom: 0, maxWidth: "80ch" }}>
+          A <strong>SIP is not spending either</strong>. It is your savings goal being carried out —
+          money moving from one of your pockets to another. Record it under <em>Money moved</em> and it
+          counts towards what you have put aside, rather than against what you have spent.
         </p>
       </div>
     </div>

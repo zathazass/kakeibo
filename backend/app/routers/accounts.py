@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from .. import accounts as accounts_view, analytics, repository as repo
 from ..db import get_db
-from ..models import AccountIn, AccountOut
+from ..models import AccountIn, AccountOut, TransferIn, TransferOut
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
@@ -92,3 +92,40 @@ def settle(
         "note": "Settling clears the debt only — the spending was already counted "
         "on the day you made it.",
     }
+
+
+transfers = APIRouter(prefix="/api/transfers", tags=["transfers"])
+
+
+@transfers.get("", response_model=list[TransferOut])
+def list_transfers(
+    month: str | None = None, db: sqlite3.Connection = Depends(get_db)
+) -> list[dict[str, Any]]:
+    return repo.list_transfers(db, month)
+
+
+@transfers.post("", response_model=TransferOut, status_code=status.HTTP_201_CREATED)
+def create_transfer(
+    payload: TransferIn, db: sqlite3.Connection = Depends(get_db)
+) -> dict[str, Any]:
+    """Move money between your own accounts.
+
+    Never spending: a SIP or a sweep into savings does not leave your hands, so
+    it stays out of the four buckets and out of every spending total.
+    """
+    if payload.from_account_id is None and payload.to_account_id is None:
+        raise HTTPException(status_code=422, detail="say which account the money came from or went to")
+    if payload.from_account_id == payload.to_account_id and payload.from_account_id is not None:
+        raise HTTPException(status_code=422, detail="from and to cannot be the same account")
+    for field in ("from_account_id", "to_account_id"):
+        account_id = getattr(payload, field)
+        if account_id is not None and repo.get_account(db, account_id) is None:
+            raise HTTPException(status_code=404, detail=f"{field.replace('_', ' ')} not found")
+    return repo.create_transfer(db, payload)
+
+
+@transfers.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_transfer(transfer_id: int, db: sqlite3.Connection = Depends(get_db)) -> Response:
+    if not repo.delete_transfer(db, transfer_id):
+        raise HTTPException(status_code=404, detail="transfer not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -17,6 +17,7 @@ export interface Plan {
   income: number;
   fixed_costs: number;
   savings_goal: number;
+  income_account_id: number | null;
   reflection: string;
 }
 
@@ -354,8 +355,22 @@ export interface Account {
   bank: string;
   kind: AccountKind;
   credit_limit: number;
+  opening_balance: number;
   note: string;
   archived: number;
+}
+
+export type TransferKind = "transfer" | "sip";
+
+export interface Transfer {
+  id: number;
+  moved_on: string;
+  from_account_id: number | null;
+  to_account_id: number | null;
+  amount: number;
+  kind: TransferKind;
+  note: string;
+  created_at: string;
 }
 
 export interface AccountLine extends Account {
@@ -369,13 +384,33 @@ export interface AccountLine extends Account {
   available?: number;
   utilisation?: number;
   utilisation_high?: boolean;
+  balance: number | null;
+  has_balance?: boolean;
+  income_to_date: number;
+  salary_this_month: number;
+  moved_in: number;
+  moved_out: number;
+  moved_in_month: number;
+  moved_out_month: number;
 }
 
 export interface AccountsView {
   month: string;
   kinds: { key: AccountKind; label: string; hint: string }[];
+  transfer_kinds: { key: TransferKind; label: string; hint: string }[];
   accounts: AccountLine[];
   has_accounts: boolean;
+  salary: { amount: number; account_id: number | null; account_name: string | null };
+  savings: {
+    goal: number;
+    into_savings: number;
+    sip: number;
+    put_aside: number;
+    short_by: number;
+    goal_pct: number;
+    met: boolean;
+  };
+  transfers: Transfer[];
   credit: {
     limit: number;
     outstanding: number;

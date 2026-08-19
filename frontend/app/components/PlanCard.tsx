@@ -2,7 +2,7 @@ import { useFetcher } from "@remix-run/react";
 import { useState } from "react";
 
 import type { Formatters } from "~/lib/format";
-import type { Plan, PlanSuggestion, Totals } from "~/lib/types";
+import type { Account, Plan, PlanSuggestion, Totals } from "~/lib/types";
 
 interface Props {
   month: string;
@@ -10,6 +10,7 @@ interface Props {
   plan: Plan;
   suggestion: PlanSuggestion | null;
   totals: Totals;
+  accounts: Account[];
   fmt: Formatters;
 }
 
@@ -19,18 +20,20 @@ interface Props {
  */
 import { Icon } from "./Icon";
 
-export function PlanCard({ month, monthLabel, plan, suggestion, totals, fmt }: Props) {
+export function PlanCard({ month, monthLabel, plan, suggestion, totals, accounts, fmt }: Props) {
   const fetcher = useFetcher<{ ok: boolean }>();
   const [income, setIncome] = useState(String(plan.income || ""));
   const [fixed, setFixed] = useState(String(plan.fixed_costs || ""));
   const [goal, setGoal] = useState(String(plan.savings_goal || ""));
+  const [incomeAccount, setIncomeAccount] = useState(String(plan.income_account_id ?? ""));
 
   const preview =
     (Number(income) || 0) - (Number(fixed) || 0) - (Number(goal) || 0);
   const dirty =
     Number(income || 0) !== plan.income ||
     Number(fixed || 0) !== plan.fixed_costs ||
-    Number(goal || 0) !== plan.savings_goal;
+    Number(goal || 0) !== plan.savings_goal ||
+    (incomeAccount ? Number(incomeAccount) : null) !== (plan.income_account_id ?? null);
 
   const applySuggestion = () => {
     if (!suggestion) return;
@@ -110,6 +113,26 @@ export function PlanCard({ month, monthLabel, plan, suggestion, totals, fmt }: P
             />
           </div>
         </div>
+
+        {accounts.length > 0 ? (
+          <div className="field" style={{ marginTop: 12 }}>
+            <label htmlFor="income_account_id">Salary lands in</label>
+            <select
+              id="income_account_id"
+              name="income_account_id"
+              className="select"
+              value={incomeAccount}
+              onChange={(event) => setIncomeAccount(event.target.value)}
+            >
+              <option value="">not recorded</option>
+              {accounts.map((a) => (
+                <option value={a.id} key={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         <div className="row" style={{ marginTop: 12, justifyContent: "space-between" }}>
           <span className="secondary">

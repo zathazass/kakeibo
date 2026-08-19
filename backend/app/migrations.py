@@ -77,6 +77,35 @@ MIGRATIONS: list[tuple[int, list[str]]] = [
             "CREATE INDEX IF NOT EXISTS idx_expense_account ON expense (account_id)",
         ],
     ),
+    # Money moving between your own accounts: salary landing, cash swept into
+    # savings, a SIP going out. None of this is spending — it never leaves your
+    # hands — so it stays out of the four buckets and out of every spending
+    # total. It is tracked here so account balances are real.
+    (
+        5,
+        [
+            "ALTER TABLE account ADD COLUMN opening_balance REAL NOT NULL DEFAULT 0",
+            "ALTER TABLE month_plan ADD COLUMN income_account_id INTEGER REFERENCES account(id)",
+            """
+            CREATE TABLE IF NOT EXISTS transfer (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                moved_on        TEXT NOT NULL,
+                from_account_id INTEGER REFERENCES account(id),
+                to_account_id   INTEGER REFERENCES account(id),
+                amount          REAL NOT NULL,
+                kind            TEXT NOT NULL DEFAULT 'transfer',
+                note            TEXT NOT NULL DEFAULT '',
+                created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+                CHECK (amount > 0),
+                CHECK (kind IN ('transfer', 'sip')),
+                CHECK (moved_on GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_transfer_month ON transfer (substr(moved_on, 1, 7))",
+            "CREATE INDEX IF NOT EXISTS idx_transfer_from ON transfer (from_account_id)",
+            "CREATE INDEX IF NOT EXISTS idx_transfer_to ON transfer (to_account_id)",
+        ],
+    ),
 ]
 
 

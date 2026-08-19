@@ -79,6 +79,9 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
           income: num("income"),
           fixed_costs: num("fixed_costs"),
           savings_goal: num("savings_goal"),
+          income_account_id: form.get("income_account_id")
+            ? Number(form.get("income_account_id"))
+            : null,
           reflection: current.reflection,
         });
         break;
@@ -90,6 +93,7 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
           income: current.income,
           fixed_costs: current.fixed_costs,
           savings_goal: current.savings_goal,
+          income_account_id: current.income_account_id,
           reflection: String(form.get("reflection") ?? ""),
         });
         break;
@@ -336,6 +340,7 @@ export default function Index() {
                 monthLabel={data.month_label}
                 plan={data.plan}
                 suggestion={data.plan_suggestion}
+                accounts={data.accounts}
                 totals={data.totals}
                 fmt={fmt}
               />

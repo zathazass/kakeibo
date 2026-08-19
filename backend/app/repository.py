@@ -81,7 +81,7 @@ def delete_expense(conn: sqlite3.Connection, expense_id: int) -> bool:
 
 def get_plan(conn: sqlite3.Connection, month: str) -> dict[str, Any]:
     cur = conn.execute(
-        "SELECT month, income, fixed_costs, savings_goal, reflection "
+        "SELECT month, income, fixed_costs, savings_goal, income_account_id, reflection "
         "FROM month_plan WHERE month = ?",
         (month,),
     )
@@ -93,6 +93,7 @@ def get_plan(conn: sqlite3.Connection, month: str) -> dict[str, Any]:
         "income": 0.0,
         "fixed_costs": 0.0,
         "savings_goal": 0.0,
+        "income_account_id": None,
         "reflection": "",
     }
 
@@ -100,16 +101,25 @@ def get_plan(conn: sqlite3.Connection, month: str) -> dict[str, Any]:
 def upsert_plan(conn: sqlite3.Connection, month: str, payload: MonthPlanIn) -> dict[str, Any]:
     conn.execute(
         """
-        INSERT INTO month_plan (month, income, fixed_costs, savings_goal, reflection)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO month_plan
+            (month, income, fixed_costs, savings_goal, income_account_id, reflection)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(month) DO UPDATE SET
-            income       = excluded.income,
-            fixed_costs  = excluded.fixed_costs,
-            savings_goal = excluded.savings_goal,
-            reflection   = excluded.reflection,
-            updated_at   = datetime('now')
+            income            = excluded.income,
+            fixed_costs       = excluded.fixed_costs,
+            savings_goal      = excluded.savings_goal,
+            income_account_id = excluded.income_account_id,
+            reflection        = excluded.reflection,
+            updated_at        = datetime('now')
         """,
-        (month, payload.income, payload.fixed_costs, payload.savings_goal, payload.reflection),
+        (
+            month,
+            payload.income,
+            payload.fixed_costs,
+            payload.savings_goal,
+            payload.income_account_id,
+            payload.reflection,
+        ),
     )
     return get_plan(conn, month)
 
@@ -390,7 +400,9 @@ def tag_month_averages(
 
 # ----------------------------------------------------------------- accounts
 
-_ACCOUNT_COLS = "id, name, bank, kind, credit_limit, note, archived"
+_ACCOUNT_COLS = (
+    "id, name, bank, kind, credit_limit, opening_balance, note, archived"
+)
 
 
 def list_accounts(conn: sqlite3.Connection, include_archived: bool = False) -> list[dict[str, Any]]:
@@ -410,8 +422,16 @@ def get_account(conn: sqlite3.Connection, account_id: int) -> dict[str, Any] | N
 
 def create_account(conn: sqlite3.Connection, payload: Any) -> dict[str, Any]:
     cur = conn.execute(
-        "INSERT INTO account (name, bank, kind, credit_limit, note) VALUES (?, ?, ?, ?, ?)",
-        (payload.name, payload.bank, payload.kind, payload.credit_limit, payload.note),
+        "INSERT INTO account (name, bank, kind, credit_limit, opening_balance, note) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            payload.name,
+            payload.bank,
+            payload.kind,
+            payload.credit_limit,
+            payload.opening_balance,
+            payload.note,
+        ),
     )
     created = get_account(conn, int(cur.lastrowid))
     assert created is not None
@@ -422,13 +442,14 @@ def update_account(
     conn: sqlite3.Connection, account_id: int, payload: Any
 ) -> dict[str, Any] | None:
     conn.execute(
-        "UPDATE account SET name = ?, bank = ?, kind = ?, credit_limit = ?, note = ?, "
-        "archived = ? WHERE id = ?",
+        "UPDATE account SET name = ?, bank = ?, kind = ?, credit_limit = ?, "
+        "opening_balance = ?, note = ?, archived = ? WHERE id = ?",
         (
             payload.name,
             payload.bank,
             payload.kind,
             payload.credit_limit,
+            payload.opening_balance,
             payload.note,
             1 if payload.archived else 0,
             account_id,
@@ -505,3 +526,106 @@ def settle_charges(
         (paid_on, account_id, up_to),
     )
     return cur.rowcount
+
+
+# ---------------------------------------------------------------- transfers
+
+_TRANSFER_COLS = (
+    "id, moved_on, from_account_id, to_account_id, amount, kind, note, created_at"
+)
+
+
+def list_transfers(conn: sqlite3.Connection, month: str | None = None) -> list[dict[str, Any]]:
+    sql = f"SELECT {_TRANSFER_COLS} FROM transfer"
+    params: list[Any] = []
+    if month:
+        sql += " WHERE substr(moved_on, 1, 7) = ?"
+        params.append(month)
+    sql += " ORDER BY moved_on DESC, id DESC"
+    return _rows(conn.execute(sql, params))
+
+
+def get_transfer(conn: sqlite3.Connection, transfer_id: int) -> dict[str, Any] | None:
+    row = conn.execute(
+        f"SELECT {_TRANSFER_COLS} FROM transfer WHERE id = ?", (transfer_id,)
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def create_transfer(conn: sqlite3.Connection, payload: Any) -> dict[str, Any]:
+    cur = conn.execute(
+        "INSERT INTO transfer (moved_on, from_account_id, to_account_id, amount, kind, note) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            payload.moved_on.isoformat(),
+            payload.from_account_id,
+            payload.to_account_id,
+            payload.amount,
+            payload.kind,
+            payload.note,
+        ),
+    )
+    created = get_transfer(conn, int(cur.lastrowid))
+    assert created is not None
+    return created
+
+
+def delete_transfer(conn: sqlite3.Connection, transfer_id: int) -> bool:
+    cur = conn.execute("DELETE FROM transfer WHERE id = ?", (transfer_id,))
+    return cur.rowcount > 0
+
+
+def transfer_movement(conn: sqlite3.Connection, month: str | None = None) -> dict[int, dict[str, float]]:
+    """Per account: what moved in and what moved out."""
+    where = "WHERE substr(moved_on, 1, 7) = ?" if month else ""
+    params: list[Any] = [month] if month else []
+    moved: dict[int, dict[str, float]] = {}
+    for column, direction in (("from_account_id", "out"), ("to_account_id", "in")):
+        cur = conn.execute(
+            f"SELECT {column} AS acct, ROUND(SUM(amount), 2) AS total, COUNT(*) AS n "
+            f"FROM transfer {where} {'AND' if where else 'WHERE'} {column} IS NOT NULL "
+            f"GROUP BY {column}",
+            params,
+        )
+        for row in cur.fetchall():
+            slot = moved.setdefault(int(row["acct"]), {"in": 0.0, "out": 0.0})
+            slot[direction] += float(row["total"] or 0)
+    return moved
+
+
+def month_sip_total(conn: sqlite3.Connection, month: str) -> dict[str, float]:
+    row = conn.execute(
+        """
+        SELECT
+            ROUND(COALESCE(SUM(CASE WHEN kind = 'sip' THEN amount END), 0), 2)       AS sip,
+            ROUND(COALESCE(SUM(CASE WHEN kind = 'transfer' THEN amount END), 0), 2)  AS moved,
+            COUNT(*) AS entries
+        FROM transfer WHERE substr(moved_on, 1, 7) = ?
+        """,
+        (month,),
+    ).fetchone()
+    return {"sip": float(row["sip"]), "moved": float(row["moved"]), "entries": int(row["entries"])}
+
+
+def income_by_account(conn: sqlite3.Connection, up_to_month: str | None = None) -> dict[int, float]:
+    """Salary that has landed, per account, from the monthly plans."""
+    sql = (
+        "SELECT income_account_id AS acct, ROUND(SUM(income), 2) AS total FROM month_plan "
+        "WHERE income_account_id IS NOT NULL"
+    )
+    params: list[Any] = []
+    if up_to_month:
+        sql += " AND month <= ?"
+        params.append(up_to_month)
+    sql += " GROUP BY income_account_id"
+    return {int(r["acct"]): float(r["total"] or 0) for r in conn.execute(sql, params).fetchall()}
+
+
+def spend_by_account(conn: sqlite3.Connection, up_to_month: str | None = None) -> dict[int, float]:
+    sql = "SELECT account_id AS acct, ROUND(SUM(amount), 2) AS total FROM expense WHERE account_id IS NOT NULL"
+    params: list[Any] = []
+    if up_to_month:
+        sql += " AND substr(spent_on, 1, 7) <= ?"
+        params.append(up_to_month)
+    sql += " GROUP BY account_id"
+    return {int(r["acct"]): float(r["total"] or 0) for r in conn.execute(sql, params).fetchall()}

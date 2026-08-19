@@ -925,6 +925,19 @@ table.data .th-key {
   padding-top: 8px;
 }
 
+.movegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 12px;
+  align-items: end;
+}
+.movegrid .wide { grid-column: span 2; }
+.movegrid .submit { display: flex; align-items: flex-end; }
+@media (max-width: 720px) {
+  .movegrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .movegrid .wide { grid-column: 1 / -1; }
+}
+
 /* -------------------------------------------------------- allocations */
 
 .alloc-summary {

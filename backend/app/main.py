@@ -58,6 +58,7 @@ app.include_router(months.router)
 app.include_router(compare.router)
 app.include_router(budget.router)
 app.include_router(accounts.router)
+app.include_router(accounts.transfers)
 
 
 @app.get("/api/health")
