@@ -7,7 +7,8 @@ from typing import Any
 from .models import ExpenseIn, MonthPlanIn
 
 _EXPENSE_COLS = (
-    "id, spent_on, category, amount, note, tag, account_id, settled_on, created_at"
+    "id, spent_on, category, amount, note, tag, account_id, settled_on, "
+    "spread_months, created_at"
 )
 
 
@@ -36,8 +37,9 @@ def get_expense(conn: sqlite3.Connection, expense_id: int) -> dict[str, Any] | N
 
 def create_expense(conn: sqlite3.Connection, payload: ExpenseIn) -> dict[str, Any]:
     cur = conn.execute(
-        "INSERT INTO expense (spent_on, category, amount, note, tag, account_id) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO expense "
+        "(spent_on, category, amount, note, tag, account_id, spread_months) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (
             payload.spent_on.isoformat(),
             payload.category,
@@ -45,6 +47,7 @@ def create_expense(conn: sqlite3.Connection, payload: ExpenseIn) -> dict[str, An
             payload.note,
             payload.tag,
             payload.account_id,
+            payload.spread_months,
         ),
     )
     created = get_expense(conn, int(cur.lastrowid))
@@ -57,7 +60,7 @@ def update_expense(
 ) -> dict[str, Any] | None:
     conn.execute(
         "UPDATE expense SET spent_on = ?, category = ?, amount = ?, note = ?, tag = ?, "
-        "account_id = ? WHERE id = ?",
+        "account_id = ?, spread_months = ? WHERE id = ?",
         (
             payload.spent_on.isoformat(),
             payload.category,
@@ -65,6 +68,7 @@ def update_expense(
             payload.note,
             payload.tag,
             payload.account_id,
+            payload.spread_months,
             expense_id,
         ),
     )
@@ -629,3 +633,12 @@ def spend_by_account(conn: sqlite3.Connection, up_to_month: str | None = None) -
         params.append(up_to_month)
     sql += " GROUP BY account_id"
     return {int(r["acct"]): float(r["total"] or 0) for r in conn.execute(sql, params).fetchall()}
+
+
+def spread_entries(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    """Every prepaid entry — one payment covering several months."""
+    return _rows(
+        conn.execute(
+            f"SELECT {_EXPENSE_COLS} FROM expense WHERE spread_months > 1 ORDER BY spent_on"
+        )
+    )

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import type { Formatters } from "~/lib/format";
 import { clamp01 } from "~/lib/format";
-import type { Comparison, DailyRow, Totals } from "~/lib/types";
+import type { Comparison, DailyRow, SpreadView, Totals } from "~/lib/types";
 
 import { Icon, type IconName } from "./Icon";
 import { Sparkline } from "./Sparkline";
@@ -11,6 +11,7 @@ interface Props {
   totals: Totals;
   comparison: Comparison;
   daily: DailyRow[];
+  spread: SpreadView;
   daysLeft: number;
   daysElapsed: number;
   daysInMonth: number;
@@ -23,6 +24,7 @@ export function Overview({
   totals,
   comparison,
   daily,
+  spread,
   daysLeft,
   daysElapsed,
   daysInMonth,
@@ -169,6 +171,18 @@ export function Overview({
               : "—"
           }
         />
+        {spread.has_spread ? (
+          <Tile
+            icon="calendar"
+            label="What the month really costs"
+            value={fmt.money(spread.monthly_spent)}
+            foot={
+              spread.difference < 0
+                ? `${fmt.money(Math.abs(spread.difference))} of what you paid covers later months`
+                : `includes ${fmt.money(spread.difference)} carried in from earlier payments`
+            }
+          />
+        ) : null}
         <Tile
           icon="clock"
           label="Daily allowance"

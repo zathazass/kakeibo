@@ -91,6 +91,7 @@ export const api = {
     note: string;
     tag: string;
     account_id: number | null;
+    spread_months: number;
   }) => request<Expense>("/expenses", { method: "POST", body: JSON.stringify(payload) }),
 
   updateExpense: (
@@ -102,6 +103,7 @@ export const api = {
       note: string;
       tag: string;
       account_id: number | null;
+      spread_months: number;
     },
   ) => request<Expense>(`/expenses/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
 

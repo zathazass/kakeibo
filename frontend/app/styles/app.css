@@ -823,6 +823,13 @@ table.data .th-key {
   vertical-align: 1px;
 }
 
+.entry .note .tagchip.spread {
+  background: color-mix(in srgb, var(--series-3) 16%, transparent);
+  border-color: transparent;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .tagrows { display: grid; gap: 9px; }
 .tagrow {
   display: grid;

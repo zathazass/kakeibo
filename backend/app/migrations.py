@@ -106,6 +106,17 @@ MIGRATIONS: list[tuple[int, list[str]]] = [
             "CREATE INDEX IF NOT EXISTS idx_transfer_to ON transfer (to_account_id)",
         ],
     ),
+    # Prepaid things: a 90-day recharge, an annual subscription. The cash goes
+    # out once, but the cost belongs to every month it covers. The entry still
+    # records the real payment on the real day — this only says how many months
+    # that payment buys, so the app can also show the monthly equivalent.
+    (
+        6,
+        [
+            "ALTER TABLE expense ADD COLUMN spread_months INTEGER NOT NULL DEFAULT 1",
+            "CREATE INDEX IF NOT EXISTS idx_expense_spread ON expense (spread_months)",
+        ],
+    ),
 ]
 
 

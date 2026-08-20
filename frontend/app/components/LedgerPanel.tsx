@@ -51,6 +51,7 @@ export function LedgerPanel({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [tag, setTag] = useState("");
+  const [spread, setSpread] = useState("1");
   const [account, setAccount] = useState("");
 
   useEffect(() => setDate(defaultDate), [defaultDate, month]);
@@ -62,6 +63,7 @@ export function LedgerPanel({
       setAmount("");
       setNote("");
       setTag("");
+      setSpread("1");
     }
   }, [fetcher.state, fetcher.data]);
 
@@ -190,6 +192,25 @@ export function LedgerPanel({
               </select>
             </div>
           ) : null}
+
+
+          <div className="field">
+            <label htmlFor="spread_months">
+              Covers <span className="optional">months</span>
+            </label>
+            <input
+              id="spread_months"
+              name="spread_months"
+              className="input"
+              type="number"
+              min="1"
+              max="60"
+              step="1"
+              value={spread}
+              onChange={(event) => setSpread(event.target.value)}
+              title="1 for an ordinary spend. 3 for a 90-day recharge. 12 for a yearly plan."
+            />
+          </div>
 
           <div className="submit">
             <button className="btn" type="submit" disabled={fetcher.state !== "idle"}>
@@ -402,6 +423,20 @@ function EntryRow({
           <p className="editerr wide">Could not save that change: {fetcher.data.error}</p>
         ) : null}
 
+        <div className="field">
+          <label htmlFor={`edit-spread-${entry.id}`}>Covers months</label>
+          <input
+            id={`edit-spread-${entry.id}`}
+            name="spread_months"
+            className="input"
+            type="number"
+            min="1"
+            max="60"
+            step="1"
+            defaultValue={entry.spread_months || 1}
+          />
+        </div>
+
         <div className="acts wide">
           <button type="button" className="btn tiny ghost" onClick={() => setMode("view")} disabled={busy}>
             Cancel
@@ -446,6 +481,11 @@ function EntryRow({
       <span className="note">
         {entry.note || <span className="muted">no note</span>}
         {entry.tag ? <span className="tagchip">{entry.tag}</span> : null}
+        {entry.spread_months > 1 ? (
+          <span className="tagchip spread" title={`Spread over ${entry.spread_months} months`}>
+            ÷{entry.spread_months}
+          </span>
+        ) : null}
         <span className="cat">{labels[entry.category]}</span>
       </span>
       <span className="amt">{fmt.exact(entry.amount)}</span>

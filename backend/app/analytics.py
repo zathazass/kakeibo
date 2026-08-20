@@ -181,6 +181,7 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
         "locale": LOCALE,
         "category_meta": CATEGORY_META,
         "accounts": repo.list_accounts(conn),
+        "spread": _spread_block(conn, month, today),
         "tags": {
             "suggestions": TAG_SUGGESTIONS,
             # Everything you have invented so far, offered back on the form.
@@ -1246,3 +1247,10 @@ def _suggestions(
 
     out.sort(key=lambda item: item["rank"])
     return out
+
+
+def _spread_block(conn: sqlite3.Connection, month: str, today: date) -> dict[str, Any]:
+    # Imported late: spread imports helpers from this module.
+    from .spread import build_spread
+
+    return build_spread(conn, month, today)

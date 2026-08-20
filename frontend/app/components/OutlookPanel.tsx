@@ -1,6 +1,6 @@
 import type { Formatters } from "~/lib/format";
 import { clamp01 } from "~/lib/format";
-import type { Outlook } from "~/lib/types";
+import type { Outlook, SpreadView } from "~/lib/types";
 import { CATEGORY_COLOR } from "~/lib/types";
 
 import { CategoryIcon } from "./CategoryIcon";
@@ -8,12 +8,14 @@ import { Icon, type IconName } from "./Icon";
 
 export function OutlookPanel({
   outlook,
+  spread,
   monthLabel,
   daysLeft,
   isCurrentMonth,
   fmt,
 }: {
   outlook: Outlook;
+  spread: SpreadView;
   monthLabel: string;
   daysLeft: number;
   isCurrentMonth: boolean;
@@ -177,6 +179,64 @@ export function OutlookPanel({
           )}
         </div>
       </div>
+
+      {spread.commitments.length > 0 ? (
+        <div className="card">
+          <div className="card-head">
+            <span className="cardic"><Icon name="calendar" size={15} /></span>
+            <h2>Already paid for</h2>
+            <span className="sub">
+              recharges and subscriptions still running — {fmt.money(spread.committed_monthly)} a
+              month of your spending is already committed
+            </span>
+          </div>
+
+          <div className="tablewrap">
+            <table className="data">
+              <caption className="sr-only">Prepaid commitments still running</caption>
+              <thead>
+                <tr>
+                  <th scope="col">What</th>
+                  <th scope="col">Paid</th>
+                  <th scope="col">Covers</th>
+                  <th scope="col">A month</th>
+                  <th scope="col">Months left</th>
+                  <th scope="col">Runs out</th>
+                  <th scope="col">Not used yet</th>
+                </tr>
+              </thead>
+              <tbody>
+                {spread.commitments.map((c) => (
+                  <tr key={c.id}>
+                    <th scope="row">
+                      {c.note || <span className="muted">no note</span>}{" "}
+                      <span className="muted">{c.tag || c.label}</span>
+                    </th>
+                    <td>{fmt.money(c.amount)}</td>
+                    <td>{c.months} mo</td>
+                    <td>{fmt.money(c.monthly)}</td>
+                    <td>
+                      {c.expiring_soon ? (
+                        <span className="delta up">{c.months_left} — renew soon</span>
+                      ) : (
+                        c.months_left
+                      )}
+                    </td>
+                    <td>{c.covers_until_label}</td>
+                    <td>{fmt.money(c.unused_value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="secondary" style={{ fontSize: 12.5, marginTop: 12, marginBottom: 0 }}>
+            {fmt.money(spread.unused_value)} of what you have already paid covers months still to
+            come. That money is spent as far as your bank is concerned, but not yet used — which is
+            why moving it aside when you pay, as you already do, is the right instinct.
+          </p>
+        </div>
+      ) : null}
 
       {/* ------------------------------------------------ collective view */}
       <div className="card">

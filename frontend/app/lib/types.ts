@@ -121,6 +121,7 @@ export interface Expense {
   tag: string;
   account_id: number | null;
   settled_on: string;
+  spread_months: number;
   created_at: string;
 }
 
@@ -423,6 +424,45 @@ export interface AccountsView {
   month_total: number;
 }
 
+export interface Commitment {
+  id: number;
+  note: string;
+  tag: string;
+  category: CategoryKey;
+  label: string;
+  amount: number;
+  monthly: number;
+  months: number;
+  months_used: number;
+  months_left: number;
+  paid_on: string;
+  covers_until: string;
+  covers_until_label: string;
+  unused_value: number;
+  expiring_soon: boolean;
+}
+
+export interface SpreadView {
+  month: string;
+  cash_spent: number;
+  monthly_spent: number;
+  difference: number;
+  has_spread: boolean;
+  categories: {
+    key: CategoryKey;
+    label: string;
+    slot: number;
+    cash: number;
+    monthly: number;
+    share: number;
+  }[];
+  paid_here: (Expense & { monthly: number; months: number })[];
+  carried_in: (Expense & { monthly: number; months: number; month_index: number })[];
+  commitments: Commitment[];
+  committed_monthly: number;
+  unused_value: number;
+}
+
 export interface Rules {
   wants_flag_pct: number;
   wants_lean_pct: number;
@@ -453,6 +493,7 @@ export interface Dashboard {
   rules: Rules;
   tags: TagOptions;
   accounts: Account[];
+  spread: SpreadView;
   plan: Plan;
   plan_suggestion: PlanSuggestion | null;
   totals: Totals;

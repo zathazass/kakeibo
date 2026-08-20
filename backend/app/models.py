@@ -93,6 +93,8 @@ class ExpenseIn(BaseModel):
     note: str = Field(default="", max_length=200)
     tag: str = Field(default="", max_length=60)
     account_id: int | None = None
+    # 1 = an ordinary spend. 3 = a 90-day recharge. 12 = an annual subscription.
+    spread_months: int = Field(default=1, ge=1, le=60)
 
     @field_validator("amount")
     @classmethod
@@ -109,6 +111,7 @@ class ExpenseOut(BaseModel):
     tag: str = ""
     account_id: int | None = None
     settled_on: str = ""
+    spread_months: int = 1
     created_at: str
 
 

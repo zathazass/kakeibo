@@ -53,6 +53,7 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
           note: String(form.get("note") ?? "").trim(),
           tag: String(form.get("tag") ?? "").trim(),
           account_id: form.get("account_id") ? Number(form.get("account_id")) : null,
+          spread_months: Math.max(1, Number(form.get("spread_months")) || 1),
         });
         break;
       }
@@ -64,6 +65,7 @@ export async function clientAction({ request }: ClientActionFunctionArgs) {
           note: String(form.get("note") ?? "").trim(),
           tag: String(form.get("tag") ?? "").trim(),
           account_id: form.get("account_id") ? Number(form.get("account_id")) : null,
+          spread_months: Math.max(1, Number(form.get("spread_months")) || 1),
         });
         break;
       }
@@ -226,6 +228,7 @@ export default function Index() {
                 totals={data.totals}
                 comparison={data.comparison}
                 daily={data.daily}
+                spread={data.spread}
                 daysLeft={data.days_left}
                 daysElapsed={data.days_elapsed}
                 daysInMonth={data.days_in_month}
@@ -289,6 +292,7 @@ export default function Index() {
           {view === "outlook" ? (
             <OutlookPanel
               outlook={data.outlook}
+              spread={data.spread}
               monthLabel={data.month_label}
               daysLeft={data.days_left}
               isCurrentMonth={data.is_current_month}
