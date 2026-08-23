@@ -801,6 +801,130 @@ table.data .th-key {
 }
 .grules dd { margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; }
 .grules dd strong { color: var(--text-primary); }
+/* ------------------------------------------------------------ celebration */
+
+.celebration-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
+.celebration-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  z-index: 91;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 13px 18px 13px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+  animation: toast-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.celebration-toast.tier-gold { border-radius: var(--radius); }
+.celebration-toast.tier-silver { border-radius: var(--radius); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 16px) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+.celebration-toast .ct-badge {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  flex: none;
+  background: color-mix(in srgb, var(--series-4) 20%, transparent);
+  color: var(--series-4);
+}
+.celebration-toast .ct-badge.small {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--status-good) 18%, transparent);
+  color: var(--status-good);
+}
+.celebration-toast.tier-silver .ct-badge {
+  background: color-mix(in srgb, var(--series-1) 18%, transparent);
+  color: var(--series-1);
+}
+.celebration-toast.tier-bronze .ct-badge {
+  background: color-mix(in srgb, var(--series-2) 18%, transparent);
+  color: var(--series-2);
+}
+
+.celebration-toast .ct-body { display: grid; gap: 1px; min-width: 0; }
+.celebration-toast .ct-eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.celebration-toast strong { font-size: 14px; }
+.celebration-toast .ct-flavour {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* -------------------------------------------------------------- badges */
+
+.badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  gap: 12px;
+}
+.badge-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-page);
+}
+.badge-card .bc-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  flex: none;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+}
+.badge-card.tier-gold .bc-icon {
+  background: color-mix(in srgb, var(--series-4) 20%, transparent);
+  color: var(--series-4);
+}
+.badge-card.tier-silver .bc-icon {
+  background: color-mix(in srgb, var(--series-1) 18%, transparent);
+  color: var(--series-1);
+}
+.badge-card.tier-bronze .bc-icon {
+  background: color-mix(in srgb, var(--series-2) 18%, transparent);
+  color: var(--series-2);
+}
+.badge-card .bc-body { display: grid; gap: 3px; min-width: 0; }
+.badge-card strong { font-size: 13.5px; }
+.badge-card .bc-flavour { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+.badge-card .bc-when { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.badge-card.is-locked { border-style: dashed; opacity: 0.72; }
+.badge-card.is-locked strong { letter-spacing: 0.18em; color: var(--text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration-toast { animation: none; }
+}
+
 /* ------------------------------------------------------------ tags/labels */
 
 .field > label .optional {

@@ -117,6 +117,22 @@ MIGRATIONS: list[tuple[int, list[str]]] = [
             "CREATE INDEX IF NOT EXISTS idx_expense_spread ON expense (spread_months)",
         ],
     ),
+    # Earned moments. Recorded once, so an achievement celebrates the first
+    # time only and cannot be farmed by reloading the page.
+    (
+        7,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS achievement (
+                key       TEXT PRIMARY KEY,
+                earned_on TEXT NOT NULL,
+                month     TEXT NOT NULL DEFAULT '',
+                detail    TEXT NOT NULL DEFAULT '',
+                seen      INTEGER NOT NULL DEFAULT 0
+            )
+            """,
+        ],
+    ),
 ]
 
 

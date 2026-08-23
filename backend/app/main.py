@@ -16,7 +16,15 @@ from . import backup
 from .config import CORS_ORIGINS, CURRENCY, DB_PATH, FRONTEND_DIST, LOCALE
 from .db import init_db
 from .models import CATEGORIES, CATEGORY_META
-from .routers import accounts, budget, compare, dashboard, expenses, months
+from .routers import (
+    accounts,
+    budget,
+    compare,
+    dashboard,
+    expenses,
+    months,
+    rewards,
+)
 
 
 log = logging.getLogger("kakeibo")
@@ -59,6 +67,7 @@ app.include_router(compare.router)
 app.include_router(budget.router)
 app.include_router(accounts.router)
 app.include_router(accounts.transfers)
+app.include_router(rewards.router)
 
 
 @app.get("/api/health")

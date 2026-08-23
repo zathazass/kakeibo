@@ -182,6 +182,9 @@ def build_dashboard(conn: sqlite3.Connection, month: str, today: date) -> dict[s
         "category_meta": CATEGORY_META,
         "accounts": repo.list_accounts(conn),
         "spread": _spread_block(conn, month, today),
+        # Evaluated on read: awarding is idempotent (INSERT OR IGNORE) and
+        # once-only, so viewing cannot farm an achievement.
+        "rewards": _rewards_block(conn, month, today),
         "tags": {
             "suggestions": TAG_SUGGESTIONS,
             # Everything you have invented so far, offered back on the form.
@@ -1254,3 +1257,9 @@ def _spread_block(conn: sqlite3.Connection, month: str, today: date) -> dict[str
     from .spread import build_spread
 
     return build_spread(conn, month, today)
+
+
+def _rewards_block(conn: sqlite3.Connection, month: str, today: date) -> dict[str, Any]:
+    from .rewards import evaluate
+
+    return evaluate(conn, month, today)

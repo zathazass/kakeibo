@@ -7,10 +7,12 @@ import {
   useRouteError,
 } from "@remix-run/react";
 import type { ClientActionFunctionArgs, ClientLoaderFunctionArgs } from "@remix-run/react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { AccountsPanel } from "~/components/AccountsPanel";
+import { AchievementsPanel } from "~/components/AchievementsPanel";
 import { BudgetPanel } from "~/components/BudgetPanel";
+import { CelebrationLayer } from "~/components/CelebrationLayer";
 import { CategoryPanel } from "~/components/CategoryPanel";
 import { ComparePanel } from "~/components/ComparePanel";
 import { DailyChart, DailyTable } from "~/components/DailyChart";
@@ -28,6 +30,7 @@ import { ReflectionPanel } from "~/components/ReflectionPanel";
 import { WeekdayPanel } from "~/components/WeekdayPanel";
 import { WeeklyPanel } from "~/components/WeeklyPanel";
 import { api } from "~/lib/api";
+import { celebrate } from "~/lib/celebrate";
 import { formattersFor } from "~/lib/format";
 import type { CategoryKey, Dashboard } from "~/lib/types";
 
@@ -119,6 +122,7 @@ const SECTIONS = [
   { key: "budget", label: "Budget", icon: "wallet", hint: "Split the month's spending money by bucket and by label" },
   { key: "ledger", label: "Ledger", icon: "table", hint: "Set the month up and log what you spend" },
   { key: "review", label: "Review", icon: "star", hint: "Close the month on the four questions" },
+  { key: "moments", label: "Moments", icon: "star", hint: "What you have unlocked, and what is still hidden" },
   { key: "guide", label: "Guide", icon: "help", hint: "How kakeibo works and how to read this app" },
 ] as const;
 
@@ -142,6 +146,22 @@ export default function Index() {
   const revalidator = useRevalidator();
   const fmt = formattersFor(data);
   const [view, setView] = useState<SectionKey>(initialView);
+
+  // Anything newly earned announces itself once. The API only ever reports a
+  // genuinely fresh award, so a reload never replays the party.
+  const announced = useRef(new Set<string>());
+  useEffect(() => {
+    for (const item of data.rewards.unlocked) {
+      if (announced.current.has(item.key)) continue;
+      announced.current.add(item.key);
+      celebrate({
+        intensity: item.tier,
+        title: item.title,
+        flavour: item.flavour,
+        icon: item.icon,
+      });
+    }
+  }, [data.rewards.unlocked]);
 
   const select = (key: string) => {
     setView(key as SectionKey);
@@ -173,12 +193,14 @@ export default function Index() {
     accounts: data.accounts.length,
     ledger: data.totals.entries,
     review: undefined,
+    moments: data.rewards.earned_count,
     guide: undefined,
   };
   const sections: NavSection[] = SECTIONS.map((s) => ({ ...s, count: counts[s.key] }));
 
   return (
     <div className="app">
+      <CelebrationLayer />
       <header className="masthead">
         <div className="brand">
           <h1>kaKeiBo</h1>
@@ -350,6 +372,8 @@ export default function Index() {
               />
             </div>
           ) : null}
+
+          {view === "moments" ? <AchievementsPanel rewards={data.rewards} /> : null}
 
           {view === "guide" ? (
             <GuidePanel rules={data.rules} currency={data.currency} onNavigate={select} />

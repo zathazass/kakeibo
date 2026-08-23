@@ -1,6 +1,7 @@
 import { useFetcher } from "@remix-run/react";
 import { useEffect, useState } from "react";
 
+import { maybeSpark } from "~/lib/celebrate";
 import type { Formatters } from "~/lib/format";
 import { dayLabel, weekdayLabel } from "~/lib/format";
 import type { Account, CategoryKey, Expense, TagOptions } from "~/lib/types";
@@ -64,6 +65,8 @@ export function LedgerPanel({
       setNote("");
       setTag("");
       setSpread("1");
+      // Sometimes. Never predictably.
+      maybeSpark();
     }
   }, [fetcher.state, fetcher.data]);
 

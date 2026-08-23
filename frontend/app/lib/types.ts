@@ -463,6 +463,25 @@ export interface SpreadView {
   unused_value: number;
 }
 
+export interface Achievement {
+  key: string;
+  title: string;
+  tier: "bronze" | "silver" | "gold";
+  icon: string;
+  hint: string;
+  flavour: string;
+  earned_on?: string;
+  month?: string;
+}
+
+export interface Rewards {
+  unlocked: Achievement[];
+  earned: Achievement[];
+  locked: Achievement[];
+  total: number;
+  earned_count: number;
+}
+
 export interface Rules {
   wants_flag_pct: number;
   wants_lean_pct: number;
@@ -494,6 +513,7 @@ export interface Dashboard {
   tags: TagOptions;
   accounts: Account[];
   spread: SpreadView;
+  rewards: Rewards;
   plan: Plan;
   plan_suggestion: PlanSuggestion | null;
   totals: Totals;
